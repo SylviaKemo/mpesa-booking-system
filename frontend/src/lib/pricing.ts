@@ -66,3 +66,13 @@ export function getSummary({ picked, chosenAdds, mins }: Selection): Summary {
 export function tierMeta(tier: Tier): string {
   return tier.note ? `${tier.mins} min · ${tier.note}` : `${tier.mins} min`;
 }
+
+/**
+ * Half the total, rounded to the nearest 50 KES, never below 100.
+ *
+ * Mirrors the prototype's arithmetic. Note the written handoff says "rounded up
+ * to the nearest 50", but the prototype rounds to nearest; the prototype wins.
+ */
+export function getDeposit(amount: number): number {
+  return Math.max(100, Math.round((amount * 0.5) / 50) * 50);
+}
