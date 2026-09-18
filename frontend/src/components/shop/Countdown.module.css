@@ -1,0 +1,43 @@
+.countdown {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: clamp(8px, 1.4vw, 16px);
+  margin-bottom: clamp(40px, 5.6vh, 58px);
+}
+
+.unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+}
+
+.box {
+  background: var(--color-deep-brown);
+  border-radius: var(--radius-square);
+  min-width: clamp(66px, 9vw, 96px);
+  padding: clamp(14px, 2.2vw, 22px) clamp(10px, 1.6vw, 16px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.value {
+  font-family: var(--font-serif);
+  font-weight: var(--weight-bold);
+  font-size: clamp(30px, 4.8vw, 52px);
+  line-height: 1;
+  color: var(--color-cream);
+  /* Keeps the digits from jittering as they tick. */
+  font-variant-numeric: tabular-nums;
+}
+
+.label {
+  font-size: 10.5px;
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: rgba(255, 230, 167, 0.82);
+}
