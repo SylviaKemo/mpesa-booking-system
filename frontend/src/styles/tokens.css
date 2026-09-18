@@ -1,0 +1,140 @@
+/**
+ * Shamim Styles — design tokens.
+ * Single source of truth for colour, type, spacing, radii and motion.
+ * Every component reads from here; no raw hex values live in component CSS.
+ */
+
+:root {
+  /* ---------- Brand palette ---------- */
+  --color-deep-brown: #14100c;
+  --color-dark-brown: #432818;
+  --color-maroon: #6f1d1b;
+  --color-tan: #bb9457;
+  --color-cream: #ffe6a7;
+
+  /* ---------- Text ---------- */
+  --text-primary: var(--color-cream);
+  --text-strong-muted: rgba(255, 230, 167, 0.86);
+  --text-muted: rgba(255, 230, 167, 0.8);
+  --text-body: rgba(255, 230, 167, 0.78);
+  --text-nav: rgba(255, 230, 167, 0.72);
+  --text-nav-warm: rgba(255, 230, 167, 0.75);
+  --text-subtle: rgba(255, 230, 167, 0.7);
+  --text-meta: rgba(255, 230, 167, 0.66);
+  --text-faint: rgba(255, 230, 167, 0.62);
+  --text-dim: rgba(255, 230, 167, 0.6);
+  --text-disabled: rgba(255, 230, 167, 0.28);
+
+  /* ---------- Surfaces ---------- */
+  --surface-page: var(--color-deep-brown);
+  --surface-card: var(--color-dark-brown);
+  --surface-glass: rgba(255, 230, 167, 0.05);
+  --surface-glass-soft: rgba(255, 230, 167, 0.04);
+  --surface-glass-hover: rgba(255, 230, 167, 0.08);
+  --surface-row-hover: rgba(255, 230, 167, 0.05);
+  --surface-ghost-hover: rgba(255, 230, 167, 0.1);
+  --surface-ghost-hover-strong: rgba(255, 230, 167, 0.12);
+  --surface-outline-hover: rgba(255, 230, 167, 0.14);
+  --surface-selected: rgba(187, 148, 87, 0.22);
+  --surface-selected-strong: rgba(187, 148, 87, 0.24);
+  --surface-accent-panel: rgba(111, 29, 27, 0.3);
+  --surface-bar: rgba(20, 16, 12, 0.92);
+  --surface-nav: rgba(20, 16, 12, 0.98);
+  --surface-footer: rgba(20, 16, 12, 0.6);
+  --surface-overlay: rgba(20, 16, 12, 0.72);
+  --surface-input: rgba(255, 230, 167, 0.05);
+  --surface-input-warm: rgba(20, 16, 12, 0.35);
+
+  /* ---------- Borders ---------- */
+  --border-hairline: rgba(187, 148, 87, 0.22);
+  --border-panel: rgba(187, 148, 87, 0.24);
+  --border-subtle: rgba(187, 148, 87, 0.28);
+  --border-card: rgba(187, 148, 87, 0.3);
+  --border-input: rgba(187, 148, 87, 0.34);
+  --border-sheet: rgba(187, 148, 87, 0.4);
+  --border-control: rgba(187, 148, 87, 0.4);
+  --border-pill: rgba(187, 148, 87, 0.5);
+  --border-bar: rgba(187, 148, 87, 0.34);
+  --border-calendar: rgba(187, 148, 87, 0.28);
+  --border-calendar-hover: rgba(187, 148, 87, 0.75);
+  --border-divider: rgba(187, 148, 87, 0.2);
+  --border-cream: rgba(255, 230, 167, 0.6);
+  --border-cream-soft: rgba(255, 230, 167, 0.5);
+  --border-cream-warm: rgba(255, 230, 167, 0.55);
+  --border-cream-faint: rgba(255, 230, 167, 0.2);
+  --border-cream-input: rgba(255, 230, 167, 0.45);
+  --border-cream-rule: rgba(255, 230, 167, 0.35);
+
+  /* ---------- Typography ---------- */
+  --font-serif: var(--font-merriweather), "Merriweather", Georgia, serif;
+  --font-sans: var(--font-rubik), "Rubik", system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+
+  --weight-light: 300;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  --tracking-eyebrow: 0.3em;
+  --tracking-label: 0.28em;
+  --tracking-caps: 0.24em;
+  --tracking-wide: 0.2em;
+
+  /* Fluid type scale — mirrors the prototype clamps exactly. */
+  --text-hero: clamp(38px, 8.5vw, 84px);
+  --text-display: clamp(34px, 6vw, 62px);
+  --text-page-title: clamp(38px, 6.5vw, 64px);
+  --text-section: clamp(28px, 4vw, 42px);
+  --text-modal-title: clamp(24px, 3vw, 32px);
+  --text-card-title: clamp(22px, 2.4vw, 27px);
+  --text-panel-title: clamp(20px, 2.4vw, 25px);
+  --text-lead: clamp(15.5px, 1.7vw, 18px);
+  --text-eyebrow: clamp(10.5px, 1.2vw, 12px);
+  --text-nav-size: clamp(13px, 1.3vw, 14px);
+  --text-button: clamp(14px, 1.5vw, 15px);
+
+  /* ---------- Layout ---------- */
+  --container-width: 1180px;
+  --gutter: clamp(20px, 5vw, 52px);
+  --gutter-narrow: clamp(20px, 5vw, 48px);
+  --nav-gap: clamp(10px, 2vw, 26px);
+  --nav-group-gap: clamp(14px, 2.2vw, 26px);
+  --nav-pad-y: clamp(18px, 3vw, 30px);
+  --nav-pad-x: clamp(18px, 4vw, 48px);
+  --nav-pad-y-lg: clamp(20px, 3.2vw, 32px);
+  --brand-size: clamp(38px, 4vw, 46px);
+  --grid-gap: clamp(20px, 2.6vw, 32px);
+  --section-gap: clamp(80px, 10vh, 120px);
+  --card-pad: clamp(20px, 2.4vw, 28px);
+  --panel-pad: clamp(50px, 7vw, 70px);
+  --sheet-pad: clamp(22px, 3.4vw, 34px);
+  --summary-bar-height: 120px;
+
+  /* ---------- Radii ---------- */
+  --radius-lg: 22px;
+  --radius-md: 18px;
+  --radius-sm: 16px;
+  --radius-panel: 14px;
+  --radius-input: 12px;
+  --radius-xs: 10px;
+  --radius-square: 8px;
+  --radius-pill: 999px;
+
+  /* ---------- Effects ---------- */
+  --shadow-headline: 0 2px 30px rgba(20, 16, 12, 0.5);
+  --blur-bar: 10px;
+  --blur-overlay: 6px;
+  --transition-base: 0.25s ease;
+  --transition-slow: 0.3s ease;
+
+  /* ---------- Interaction ---------- */
+  --opacity-disabled: 0.55;
+
+  /* ---------- Z-index ---------- */
+  --z-ambient: 0;
+  --z-content: 1;
+  --z-summary-bar: 40;
+  --z-nav: 50;
+  --z-modal: 60;
+}
