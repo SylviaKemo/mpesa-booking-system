@@ -1,10 +1,21 @@
 .footer {
   position: relative;
   z-index: var(--z-content);
+  text-align: center;
+  font-size: 13px;
+}
+
+/* Content pages: tan rule over the deep brown page. */
+.default {
   background: var(--surface-footer);
   border-top: 1px solid var(--border-hairline);
   padding: clamp(30px, 4vw, 48px);
-  text-align: center;
-  font-size: 13px;
   color: var(--text-dim);
+}
+
+/* Shop: cream rule over maroon, and a tighter band. */
+.warm {
+  border-top: 1px solid var(--border-cream-faint);
+  padding: clamp(24px, 3.4vw, 34px);
+  color: rgba(255, 230, 167, 0.68);
 }
