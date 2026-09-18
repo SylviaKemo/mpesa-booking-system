@@ -83,6 +83,18 @@ export const ADDITIONS_CARD = {
   alt: "Lash additions and removal",
 } as const;
 
+/** Bookable start times, 9am to 6pm. */
+export const SLOTS = [
+  "9:00 am",
+  "10:00 am",
+  "11:30 am",
+  "1:00 pm",
+  "2:30 pm",
+  "4:00 pm",
+  "5:00 pm",
+  "6:00 pm",
+] as const;
+
 export const MENU_STEPS = [
   { n: 1, label: "Pick a volume" },
   { n: 2, label: "Add extras" },

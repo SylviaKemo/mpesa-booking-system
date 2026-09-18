@@ -3,7 +3,9 @@
 import { useMemo, useState } from "react";
 import { Container } from "@/components/ui/Container";
 import { ADDITIONS, ADDITIONS_CARD, SETS } from "@/data/services";
+import { useBooking } from "@/hooks/useBooking";
 import { getSelection, getSummary, tierMeta } from "@/lib/pricing";
+import { BookingFlow } from "./booking/BookingFlow";
 import { OptionRow } from "./OptionRow";
 import { ServiceCard } from "./ServiceCard";
 import { SummaryBar } from "./SummaryBar";
@@ -15,6 +17,8 @@ export function ServicesMenu() {
 
   const selection = useMemo(() => getSelection(tierId, addIds), [tierId, addIds]);
   const summary = useMemo(() => getSummary(selection), [selection]);
+
+  const booking = useBooking(selection.amount);
 
   const toggleAddition = (id: string) =>
     setAddIds((current) =>
@@ -73,9 +77,18 @@ export function ServicesMenu() {
         summary={summary}
         amount={selection.amount}
         canBook={selection.picked !== null}
-        // Booking opens in the next PR; the button stays inert until then.
-        onBook={() => {}}
+        onBook={booking.open}
       />
+
+      {booking.isOpen ? (
+        <BookingFlow
+          booking={booking}
+          summary={summary}
+          amount={selection.amount}
+          chips={selection.chosenAdds}
+          onRemoveChip={toggleAddition}
+        />
+      ) : null}
     </>
   );
 }
