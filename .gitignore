@@ -1,0 +1,6 @@
+# local tooling
+.claude/
+
+# os
+.DS_Store
+Thumbs.db
