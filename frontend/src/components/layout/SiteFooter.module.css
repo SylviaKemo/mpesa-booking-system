@@ -1,0 +1,10 @@
+.footer {
+  position: relative;
+  z-index: var(--z-content);
+  background: var(--surface-footer);
+  border-top: 1px solid var(--border-hairline);
+  padding: clamp(30px, 4vw, 48px);
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-dim);
+}

@@ -42,3 +42,15 @@ export const HOME_HERO = {
     "https://swiftill.co.ke/uploads/businesses/katiani-styles/services/basic-wispy/1de49dea14664f6588b3c30dda5455a4.jpeg",
   alt: "Lash artistry close-up",
 } as const;
+
+/**
+ * TODO: swap in the supplied portrait once it is available. The handoff
+ * references `uploads/WhatsApp Image 2026-09-18 at 15.13.57.jpeg`, which was not
+ * included in the bundle; this stands in so the About page renders.
+ */
+export const ABOUT_PORTRAIT = {
+  image:
+    "https://swiftill.co.ke/uploads/businesses/katiani-styles/services/mid-vol-classic/f3875edac0014d6fa2ecc06eb8426ef2.jpeg",
+  alt: "Shamim, founder of Shamim Styles",
+  isPlaceholder: true,
+} as const;
