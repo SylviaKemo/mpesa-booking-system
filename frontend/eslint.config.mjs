@@ -1,12 +1,14 @@
-import { dirname } from "node:path";
-import { fileURLToPath } from "node:url";
-import { FlatCompat } from "@eslint/eslintrc";
+import nextCoreWebVitals from "eslint-config-next/core-web-vitals";
+import nextTypeScript from "eslint-config-next/typescript";
 
-const compat = new FlatCompat({
-  baseDirectory: dirname(fileURLToPath(import.meta.url)),
-});
-
-export default [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+/**
+ * eslint-config-next 16 ships native flat configs, so these are spread directly
+ * rather than wrapped in FlatCompat as they were under 15.
+ */
+const config = [
+  ...nextCoreWebVitals,
+  ...nextTypeScript,
   { ignores: [".next/**", "node_modules/**"] },
 ];
+
+export default config;
