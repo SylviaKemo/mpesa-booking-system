@@ -1,0 +1,102 @@
+.nav {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--nav-gap);
+  padding: var(--nav-pad-y) var(--nav-pad-x);
+  font-size: var(--text-nav-size);
+  font-weight: var(--weight-regular);
+}
+
+/* Over the hero image: no chrome of its own. */
+.hero {
+  background: transparent;
+}
+
+/* On the services menu: a hairline rule against the gradient page. */
+.bordered {
+  border-bottom: 1px solid var(--border-hairline);
+}
+
+/* Long scrolling pages: pinned and frosted so it stays legible over content. */
+.sticky {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-nav);
+  padding: var(--nav-pad-y-lg) var(--gutter);
+  border-bottom: 1px solid var(--border-hairline);
+  background: var(--surface-nav);
+  backdrop-filter: blur(var(--blur-bar));
+}
+
+/* Maroon shop page: cream rules instead of tan. */
+.warm {
+  padding: var(--nav-pad-y-lg) var(--gutter);
+  border-bottom: 1px solid var(--border-cream-faint);
+}
+
+.group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--nav-group-gap);
+}
+
+.link {
+  padding: 6px 2px;
+  color: var(--text-nav);
+  transition: color var(--transition-base);
+}
+
+.warm .link {
+  color: var(--text-nav-warm);
+}
+
+.link:hover {
+  color: var(--color-tan);
+}
+
+.active,
+.warm .active {
+  color: var(--color-cream);
+  font-weight: var(--weight-medium);
+}
+
+.brand {
+  display: flex;
+  justify-content: center;
+}
+
+.monogram {
+  flex: none;
+  width: var(--brand-size);
+  height: var(--brand-size);
+  border-radius: 50%;
+  border: 1px solid var(--border-cream-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-serif);
+  font-size: clamp(14px, 1.4vw, 15px);
+  font-weight: var(--weight-bold);
+  color: var(--color-cream);
+}
+
+.warm .monogram {
+  border-color: var(--border-cream-warm);
+}
+
+/* Below 860px the mark takes its own row and each link group spans full width. */
+@media (max-width: 860px) {
+  .brand {
+    order: -1;
+    flex-basis: 100%;
+  }
+
+  .group {
+    flex-basis: 100%;
+  }
+}
