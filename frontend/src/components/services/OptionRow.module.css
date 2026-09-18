@@ -1,0 +1,81 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 0;
+  border: none;
+  border-top: 1px solid var(--border-hairline);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--transition-base);
+}
+
+.row:hover {
+  background: var(--surface-row-hover);
+}
+
+.indicator {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--color-tan);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  background: transparent;
+  transition: background-color var(--transition-base);
+}
+
+.selected .dot {
+  background: var(--color-tan);
+}
+
+/* A tier is one-of-many, an addition is any-of-many — round vs square says which. */
+.radio .indicator,
+.radio .dot {
+  border-radius: 50%;
+}
+
+.checkbox .indicator {
+  border-radius: 5px;
+}
+
+.checkbox .dot {
+  border-radius: 2px;
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+}
+
+.label {
+  display: block;
+  font-size: 15px;
+  font-weight: var(--weight-medium);
+  color: var(--color-cream);
+}
+
+.meta {
+  display: block;
+  margin-top: 3px;
+  font-size: 12.5px;
+  font-weight: var(--weight-light);
+  color: var(--text-dim);
+}
+
+.price {
+  font-family: var(--font-serif);
+  font-size: 19px;
+  font-weight: var(--weight-bold);
+  color: var(--color-tan);
+  white-space: nowrap;
+}

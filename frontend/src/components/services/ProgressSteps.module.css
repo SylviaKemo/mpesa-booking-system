@@ -1,0 +1,44 @@
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(14px, 2.4vw, 30px);
+  margin-top: clamp(30px, 4vh, 44px);
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.marker {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--border-pill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-serif);
+  font-size: 13px;
+  font-weight: var(--weight-bold);
+  color: var(--text-dim);
+}
+
+.label {
+  font-size: 14px;
+  font-weight: var(--weight-regular);
+  color: var(--text-faint);
+}
+
+.active .marker {
+  border-color: var(--color-tan);
+  color: var(--color-tan);
+}
+
+.active .label {
+  color: rgba(255, 230, 167, 0.82);
+}
