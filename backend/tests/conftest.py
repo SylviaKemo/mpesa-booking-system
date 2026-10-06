@@ -16,9 +16,12 @@ os.environ["ENVIRONMENT"] = "development"
 from alembic import command  # noqa: E402
 from alembic.config import Config  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
+from sqlalchemy.orm import Session  # noqa: E402
 
-from app.database import engine  # noqa: E402
+from app.database import SessionLocal, engine  # noqa: E402
 from app.main import create_app  # noqa: E402
+from app.models import Addition, LashSet, Tier  # noqa: E402
+from app.seed import seed_catalogue  # noqa: E402
 
 _BACKEND_ROOT = Path(__file__).resolve().parent.parent
 
@@ -50,3 +53,27 @@ def _schema() -> Generator[None, None, None]:
 def client() -> Generator[TestClient, None, None]:
     with TestClient(create_app()) as test_client:
         yield test_client
+
+
+@pytest.fixture
+def db() -> Generator[Session, None, None]:
+    session = SessionLocal()
+    try:
+        yield session
+    finally:
+        session.close()
+
+
+@pytest.fixture
+def seeded(db: Session) -> Generator[None, None, None]:
+    """
+    Catalogue rows, removed afterwards so tests stay independent.
+
+    Seeds through the real seed_catalogue rather than fixtures of its own, so a
+    drift between the seed data and the schema fails a test here.
+    """
+    seed_catalogue(db)
+    yield
+    for model in (Tier, LashSet, Addition):
+        db.query(model).delete()
+    db.commit()
