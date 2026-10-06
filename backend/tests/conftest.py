@@ -29,7 +29,7 @@ from app.models import (  # noqa: E402
     Payment,
     Tier,
 )
-from app.services.mpesa import get_provider  # noqa: E402
+from app.services.mpesa import fake_provider  # noqa: E402
 from app.seed import seed_catalogue  # noqa: E402
 
 _BACKEND_ROOT = Path(__file__).resolve().parent.parent
@@ -67,15 +67,15 @@ def client() -> Generator[TestClient, None, None]:
 @pytest.fixture(autouse=True)
 def _reset_mpesa() -> Generator[None, None, None]:
     """The fake provider is a module singleton, so each test starts it clean."""
-    get_provider().reset()
+    fake_provider.reset()
     yield
-    get_provider().reset()
+    fake_provider.reset()
 
 
 @pytest.fixture
 def mpesa() -> object:
     """The fake provider, for asserting what was sent and forcing failures."""
-    return get_provider()
+    return fake_provider
 
 
 @pytest.fixture

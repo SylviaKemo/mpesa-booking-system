@@ -8,3 +8,6 @@ alembic==1.14.0
 
 # Postgres driver, so DATABASE_URL=postgresql+psycopg://... works as documented.
 psycopg[binary]==3.2.3
+
+# HTTP client for Daraja.
+httpx2==2.13.1

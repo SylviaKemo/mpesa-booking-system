@@ -46,14 +46,5 @@ class FakeMpesaProvider:
         self.fail_with = None
 
 
-_fake = FakeMpesaProvider()
-
-
-def get_provider() -> FakeMpesaProvider:
-    """
-    The provider the app should use.
-
-    A single instance so a test can inspect what the request sent. The Daraja
-    client lands here once credentials exist.
-    """
-    return _fake
+#: A single instance, so a test can inspect what a request sent.
+fake_provider = FakeMpesaProvider()

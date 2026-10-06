@@ -94,7 +94,21 @@ slot as `pending_payment` until the callback settles it.
 
 `MPESA_PROVIDER=fake` records prompts in memory rather than sending them, so the
 whole flow runs without credentials or a public URL. Production refuses to start
-on the fake, and refuses to start without a callback secret.
+on the fake, and refuses to start without the credentials and callback secret.
+
+### Running against the real sandbox
+
+1. Create an app at [developer.safaricom.co.ke](https://developer.safaricom.co.ke)
+   and copy its Consumer Key and Secret.
+2. Expose the API: `ngrok http 8000`, and copy the https URL.
+3. Generate a callback secret:
+   `python -c "import secrets; print(secrets.token_urlsafe(32))"`
+4. Put all four in `.env`, and set `MPESA_PROVIDER=daraja`.
+5. Book with `payment_method: "mpesa"` and a real Safaricom number. The prompt
+   arrives on the handset; answering it confirms the booking.
+
+The callback URL is built for you as
+`<MPESA_CALLBACK_BASE_URL>/api/mpesa/callback/<MPESA_CALLBACK_SECRET>`.
 
 Three things the callback handler does not take on trust:
 

@@ -17,6 +17,18 @@ def _settings_from_env(monkeypatch: pytest.MonkeyPatch, **env: str) -> Settings:
     return Settings()
 
 
+def _production_mpesa() -> dict[str, str]:
+    """A production config that satisfies every M-Pesa guard."""
+    return {
+        "ENVIRONMENT": "production",
+        "MPESA_PROVIDER": "daraja",
+        "MPESA_CALLBACK_SECRET": "s3cret",
+        "MPESA_CONSUMER_KEY": "key",
+        "MPESA_CONSUMER_SECRET": "secret",
+        "MPESA_CALLBACK_BASE_URL": "https://shamimstyles.co.ke",
+    }
+
+
 def test_single_origin_loads_from_the_environment(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -68,9 +80,7 @@ def test_wildcard_origin_is_refused_in_production(
         _settings_from_env(
             monkeypatch,
             CORS_ORIGINS="*",
-            ENVIRONMENT="production",
-            MPESA_PROVIDER="daraja",
-            MPESA_CALLBACK_SECRET="s3cret",
+            **_production_mpesa(),
         )
 
 
@@ -81,8 +91,8 @@ def test_production_refuses_the_fake_payment_provider(
     with pytest.raises(ValidationError, match="MPESA_PROVIDER"):
         _settings_from_env(
             monkeypatch,
-            ENVIRONMENT="production",
             CORS_ORIGINS="https://shamimstyles.co.ke",
+            **{**_production_mpesa(), "MPESA_PROVIDER": "fake"},
         )
 
 
@@ -92,13 +102,12 @@ def test_production_requires_a_callback_secret(
     """Without it the callback URL is guessable and anyone could forge a confirmation."""
     # conftest sets a secret for the whole session; this case needs it absent.
     monkeypatch.delenv("MPESA_CALLBACK_SECRET", raising=False)
+    config = _production_mpesa()
+    config.pop("MPESA_CALLBACK_SECRET")
 
     with pytest.raises(ValidationError, match="MPESA_CALLBACK_SECRET"):
         _settings_from_env(
-            monkeypatch,
-            ENVIRONMENT="production",
-            CORS_ORIGINS="https://shamimstyles.co.ke",
-            MPESA_PROVIDER="daraja",
+            monkeypatch, CORS_ORIGINS="https://shamimstyles.co.ke", **config
         )
 
 
