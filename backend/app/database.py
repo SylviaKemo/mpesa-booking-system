@@ -1,7 +1,8 @@
+import enum
 from collections.abc import Generator
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, TypeDecorator, create_engine, event
+from sqlalchemy import DateTime, String, TypeDecorator, create_engine, event
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
@@ -65,6 +66,41 @@ class UtcDateTime(TypeDecorator):
         if value is None:
             return None
         return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value
+
+
+class EnumValue(TypeDecorator):
+    """
+    Stores an enum by its value and gives the enum back on load.
+
+    A plain String column annotated Mapped[SomeEnum] is a lie: the value round
+    trips as str, so attribute access the annotation promises — .value, say —
+    raises at runtime while a type checker waves it through. Equality survives
+    only when the enum subclasses str, which hides it in tests.
+
+    The stored text stays the member's value, so no data changes and SQL that
+    matches on it, such as the partial slot index, keeps working.
+    """
+
+    impl = String
+    cache_ok = True
+
+    def __init__(self, enum_class: type[enum.Enum], length: int) -> None:
+        self.enum_class = enum_class
+        super().__init__(length=length)
+
+    def process_bind_param(
+        self, value: enum.Enum | str | None, dialect: object
+    ) -> str | None:
+        if value is None:
+            return None
+        return self.enum_class(value).value
+
+    def process_result_value(
+        self, value: str | None, dialect: object
+    ) -> enum.Enum | None:
+        if value is None:
+            return None
+        return self.enum_class(value)
 
 
 class Base(DeclarativeBase):

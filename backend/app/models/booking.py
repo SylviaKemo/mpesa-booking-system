@@ -14,7 +14,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.database import Base, UtcDateTime
+from app.database import Base, EnumValue, UtcDateTime
 from app.models.catalogue import Addition, Tier
 
 
@@ -66,8 +66,12 @@ class Booking(Base):
     #: The slot's stable key, not its label — see app/slots.py.
     slot_key: Mapped[str] = mapped_column(String(8), nullable=False)
 
-    status: Mapped[BookingStatus] = mapped_column(String(20), nullable=False)
-    payment_method: Mapped[PaymentMethod] = mapped_column(String(10), nullable=False)
+    status: Mapped[BookingStatus] = mapped_column(
+        EnumValue(BookingStatus, 20), nullable=False
+    )
+    payment_method: Mapped[PaymentMethod] = mapped_column(
+        EnumValue(PaymentMethod, 10), nullable=False
+    )
 
     tier_id: Mapped[str] = mapped_column(
         String(32), ForeignKey("tiers.id"), nullable=False

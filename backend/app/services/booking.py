@@ -50,11 +50,15 @@ def _salon_now() -> datetime:
     return datetime.now(get_settings().tz)
 
 
-def _slot_has_passed(on: date, slot_key: str, now: datetime | None = None) -> bool:
+def _slot_has_passed(on: date, slot_key: str, now: datetime) -> bool:
     slot = get_slot(slot_key)
     if slot is None:
         return True
-    return starts_at(slot, on, get_settings().tz) <= (now or _salon_now())
+    return starts_at(slot, on, get_settings().tz) <= now
+
+
+def _last_bookable_day(now: datetime) -> date:
+    return now.date() + timedelta(days=get_settings().max_booking_lead_days)
 
 
 def _make_reference() -> str:
@@ -119,12 +123,17 @@ class SlotAvailability:
     available: bool
 
 
-def availability(db: Session, on: date, today: date | None = None) -> list[SlotAvailability]:
+def availability(
+    db: Session, on: date, now: datetime | None = None
+) -> list[SlotAvailability]:
     """
     Every slot for a day, flagged free or taken.
 
     The whole day is returned rather than only free slots, so the client can
     show a taken time as disabled instead of silently omitting it.
+
+    `now` is the single clock these decisions are made against; callers that
+    need a deterministic answer pass it, and it reaches every guard.
     """
     expire_stale_holds(db)
     db.commit()
@@ -138,17 +147,22 @@ def availability(db: Session, on: date, today: date | None = None) -> list[SlotA
         ).all()
     )
 
-    # Comparing whole days would leave this morning's slots on offer all
-    # afternoon, so each slot is judged against its own start time.
-    now = _salon_now()
+    moment = now or _salon_now()
+
+    # Beyond the lead time nothing is bookable, and saying otherwise would have
+    # this endpoint offer slots that POST /api/bookings then refuses.
+    too_far = on > _last_bookable_day(moment)
 
     return [
         SlotAvailability(
             key=slot.key,
             label=slot.label,
             available=(
-                slot.key not in taken
-                and starts_at(slot, on, get_settings().tz) > now
+                not too_far
+                and slot.key not in taken
+                # Comparing whole days would leave this morning's slots on offer
+                # all afternoon, so each is judged against its own start time.
+                and starts_at(slot, on, get_settings().tz) > moment
             ),
         )
         for slot in SLOTS
@@ -166,7 +180,7 @@ def create_booking(
     phone: str,
     notes: str | None,
     payment_method: PaymentMethod,
-    today: date | None = None,
+    now: datetime | None = None,
 ) -> Booking:
     """
     Create a booking, pricing it from the catalogue.
@@ -178,16 +192,15 @@ def create_booking(
     if get_slot(slot_key) is None:
         raise BookingError(f"Unknown time slot: {slot_key!r}")
 
-    settings = get_settings()
-    salon_today = (today or _salon_now().date())
+    moment = now or _salon_now()
 
-    if booking_date > salon_today + timedelta(days=settings.max_booking_lead_days):
+    if booking_date > _last_bookable_day(moment):
         raise BookingError(
-            f"Bookings open {settings.max_booking_lead_days} days ahead. "
+            f"Bookings open {get_settings().max_booking_lead_days} days ahead. "
             "Please choose an earlier date."
         )
 
-    if _slot_has_passed(booking_date, slot_key):
+    if _slot_has_passed(booking_date, slot_key, moment):
         raise BookingError("That time has already passed. Please choose another.")
 
     customer_name = (name or "").strip()
