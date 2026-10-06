@@ -1,0 +1,119 @@
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: clamp(24px, 3.2vh, 32px) 0 14px;
+}
+
+.sectionLabel {
+  font-size: 11px;
+  font-weight: var(--weight-medium);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-tan);
+}
+
+.monthNav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.arrow {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--border-control);
+  background: transparent;
+  color: var(--color-cream);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color var(--transition-base);
+}
+
+.arrow:hover {
+  background: var(--surface-ghost-hover);
+}
+
+.month {
+  min-width: 132px;
+  text-align: center;
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: var(--weight-bold);
+  color: var(--color-cream);
+}
+
+.weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.weekday {
+  text-align: center;
+  font-size: 11px;
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-tan);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.day {
+  aspect-ratio: 1 / 1;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border-calendar);
+  background: transparent;
+  color: var(--color-cream);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+  transition:
+    border-color var(--transition-base),
+    background-color var(--transition-base);
+}
+
+.day:hover:not(:disabled) {
+  border-color: var(--border-calendar-hover);
+}
+
+.day:disabled {
+  border-color: transparent;
+  color: var(--text-disabled);
+  cursor: default;
+}
+
+.selected,
+.selected:disabled {
+  border-color: var(--color-tan);
+  background: var(--surface-selected-strong);
+  color: var(--color-cream);
+}
+
+/* Leading cells before the 1st: hold the grid shape, show nothing. */
+.blank {
+  border-color: transparent;
+  color: transparent;
+  cursor: default;
+}
+
+@media (max-width: 560px) {
+  .weekdays,
+  .grid {
+    gap: 4px;
+  }
+}

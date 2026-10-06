@@ -4,8 +4,12 @@ import styles from "./Button.module.css";
 
 export type ButtonVariant = "primary" | "outline";
 
+/** `hero` is the default page-level padding; `bar` fits the sticky summary bar. */
+export type ButtonSize = "hero" | "bar";
+
 type CommonProps = {
   variant?: ButtonVariant;
+  size?: ButtonSize;
   className?: string;
   children: React.ReactNode;
 };
@@ -26,11 +30,17 @@ export type ButtonProps = ButtonAsLink | ButtonAsButton;
  */
 export function Button({
   variant = "primary",
+  size = "hero",
   className,
   children,
   ...rest
 }: ButtonProps) {
-  const classes = [styles.base, styles[variant], className]
+  const classes = [
+    styles.base,
+    styles[variant],
+    size === "bar" ? styles.bar : "",
+    className,
+  ]
     .filter(Boolean)
     .join(" ");
 

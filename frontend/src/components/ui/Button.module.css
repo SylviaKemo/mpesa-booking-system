@@ -15,6 +15,7 @@
 
 .base:disabled {
   cursor: default;
+  opacity: var(--opacity-disabled);
 }
 
 /* Filled cream pill — the single primary action on a view. */
@@ -43,4 +44,11 @@
 .outline:hover {
   background: var(--surface-outline-hover);
   color: var(--color-cream);
+}
+
+/* Compact pill for the sticky summary bar, which has less vertical room. */
+.bar {
+  padding: 14px clamp(22px, 3vw, 32px);
+  font-size: 14.5px;
+  white-space: nowrap;
 }

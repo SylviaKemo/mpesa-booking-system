@@ -1,0 +1,59 @@
+.form {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 440px;
+}
+
+.input {
+  flex: 1 1 200px;
+  min-width: 0;
+  padding: 15px 18px;
+  border-radius: var(--radius-square);
+  border: 1px solid var(--border-cream-input);
+  background: var(--surface-input-warm);
+  color: var(--color-cream);
+  font-family: var(--font-sans);
+  font-size: 14.5px;
+  outline: none;
+  transition: border-color var(--transition-base);
+}
+
+.input::placeholder {
+  color: rgba(255, 230, 167, 0.45);
+}
+
+.input:focus-visible {
+  border-color: var(--color-tan);
+}
+
+.button {
+  flex: 0 0 auto;
+  padding: 15px 30px;
+  border-radius: var(--radius-square);
+  border: none;
+  background: var(--color-tan);
+  color: var(--color-deep-brown);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color var(--transition-base);
+}
+
+.button:hover {
+  background: var(--color-cream);
+}
+
+/* Reserves the line so confirming does not shift the page. */
+.note {
+  margin-top: 14px;
+  font-size: 12.5px;
+  font-weight: var(--weight-light);
+  color: var(--text-faint);
+  min-height: 19px;
+}

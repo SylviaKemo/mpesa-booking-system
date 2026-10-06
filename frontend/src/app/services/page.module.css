@@ -1,0 +1,50 @@
+.page {
+  width: 100%;
+  min-height: 100svh;
+  color: var(--text-primary);
+  /* Warms the top of the page toward maroon and settles into the deep brown. */
+  background:
+    radial-gradient(
+      120% 70% at 50% 0%,
+      rgba(111, 29, 27, 0.55) 0%,
+      rgba(67, 40, 24, 0.9) 48%,
+      var(--color-deep-brown) 100%
+    ),
+    var(--color-deep-brown);
+  /* Clears the fixed summary bar. */
+  padding-bottom: var(--summary-bar-height);
+}
+
+.header {
+  padding-top: clamp(48px, 8vw, 88px);
+  padding-bottom: clamp(28px, 4vw, 44px);
+}
+
+.eyebrow {
+  margin-bottom: clamp(14px, 2vh, 20px);
+  font-size: var(--text-eyebrow);
+  font-weight: var(--weight-medium);
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--color-tan);
+}
+
+.title {
+  font-family: var(--font-serif);
+  font-weight: var(--weight-bold);
+  font-size: var(--text-display);
+  line-height: 1.04;
+  letter-spacing: -0.025em;
+  color: var(--color-cream);
+  text-wrap: balance;
+}
+
+.intro {
+  margin-top: clamp(16px, 2.4vh, 22px);
+  max-width: 560px;
+  font-size: var(--text-lead);
+  line-height: 1.66;
+  font-weight: var(--weight-light);
+  color: var(--text-body);
+  text-wrap: pretty;
+}

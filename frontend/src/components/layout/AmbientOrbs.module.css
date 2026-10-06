@@ -1,0 +1,13 @@
+.orbs {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: var(--z-ambient);
+}
+
+.orb {
+  position: absolute;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  animation: float var(--orb-duration) ease-in-out infinite var(--orb-delay);
+}

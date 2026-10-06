@@ -42,3 +42,9 @@ export const HOME_HERO = {
     "https://swiftill.co.ke/uploads/businesses/katiani-styles/services/basic-wispy/1de49dea14664f6588b3c30dda5455a4.jpeg",
   alt: "Lash artistry close-up",
 } as const;
+
+export const ABOUT_PORTRAIT = {
+  /** 960x1280 — exactly the 3:4 the About portrait slot expects, so nothing crops. */
+  image: "/images/shamim-portrait.jpg",
+  alt: "Shamim, founder of Shamim Styles",
+} as const;

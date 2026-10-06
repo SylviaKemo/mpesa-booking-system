@@ -1,0 +1,95 @@
+.done {
+  padding-top: clamp(18px, 3vh, 26px);
+}
+
+.tick {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: var(--color-tan);
+  color: var(--color-dark-brown);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  font-weight: var(--weight-semibold);
+}
+
+.headline {
+  margin-top: 20px;
+  font-family: var(--font-serif);
+  font-size: clamp(21px, 2.6vw, 26px);
+  font-weight: var(--weight-bold);
+  color: var(--color-cream);
+}
+
+.body {
+  margin-top: 12px;
+  font-size: 15px;
+  line-height: 1.66;
+  font-weight: var(--weight-light);
+  color: var(--text-body);
+}
+
+.receipt {
+  margin: clamp(22px, 3vh, 28px) 0 0;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-panel);
+  overflow: hidden;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--border-divider);
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+.rowLabel {
+  font-size: 13px;
+  font-weight: var(--weight-light);
+  color: var(--text-meta);
+}
+
+.rowValue {
+  margin: 0;
+  font-size: 13px;
+  font-weight: var(--weight-medium);
+  color: var(--color-cream);
+  text-align: right;
+}
+
+.reference {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: var(--weight-regular);
+  color: var(--color-cream);
+}
+
+.doneButton {
+  margin-top: clamp(24px, 3.4vh, 32px);
+  width: 100%;
+  padding: 16px 26px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--color-cream);
+  color: var(--color-maroon);
+  font-family: var(--font-sans);
+  font-size: 14.5px;
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+  transition:
+    background-color var(--transition-slow),
+    color var(--transition-slow);
+}
+
+.doneButton:hover {
+  background: var(--color-tan);
+  color: var(--color-dark-brown);
+}
