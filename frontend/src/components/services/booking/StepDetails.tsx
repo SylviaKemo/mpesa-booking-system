@@ -63,6 +63,12 @@ export function StepDetails({ booking, amount }: StepDetailsProps) {
         />
       </div>
 
+      {booking.error ? (
+        <p className={styles.error} role="alert">
+          {booking.error}
+        </p>
+      ) : null}
+
       <div className={styles.footer}>
         <button type="button" onClick={booking.backToWhen} className={styles.back}>
           Back
@@ -78,7 +84,11 @@ export function StepDetails({ booking, amount }: StepDetailsProps) {
             onClick={booking.submit}
             className={`${styles.primary} ${styles.submit}`}
           >
-            {booking.pay === "mpesa" ? "Pay deposit & book" : "Confirm booking"}
+            {booking.submitting
+              ? "Sending…"
+              : booking.pay === "mpesa"
+                ? "Pay deposit & book"
+                : "Confirm booking"}
           </button>
         </div>
       </div>

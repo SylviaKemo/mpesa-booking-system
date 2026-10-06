@@ -1,6 +1,6 @@
 "use client";
 
-import type { Addition } from "@/data/services";
+import type { Addition } from "@/lib/api";
 import type { Booking } from "@/hooks/useBooking";
 import type { Summary } from "@/lib/pricing";
 import { BookingSheet } from "./BookingSheet";

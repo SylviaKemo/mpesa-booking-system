@@ -149,3 +149,27 @@
 .submit {
   padding: 15px 28px;
 }
+
+/* A time another client holds: visible, so the day keeps its shape, but plainly
+   not on offer. */
+.slotTaken {
+  opacity: var(--opacity-disabled);
+  cursor: default;
+  text-decoration: line-through;
+}
+
+.slotTaken:hover {
+  border-color: var(--border-card);
+}
+
+.error {
+  margin-top: 12px;
+  font-size: 13px;
+  font-weight: var(--weight-light);
+  line-height: 1.5;
+  color: var(--color-cream);
+  padding: 10px 12px;
+  border: 1px solid var(--border-pill);
+  border-radius: var(--radius-input);
+  background: var(--surface-glass);
+}
