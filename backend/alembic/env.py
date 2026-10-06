@@ -4,7 +4,7 @@ from alembic import context
 from sqlalchemy import engine_from_config, pool
 
 from app.config import get_settings
-from app.database import Base
+from app.database import Base, EnumValue, UtcDateTime
 
 # Importing the models package registers every model on Base.metadata, which is
 # what autogenerate compares against. Models arrive in the next slice.
@@ -24,11 +24,29 @@ config.set_main_option("sqlalchemy.url", get_settings().database_url.replace("%"
 target_metadata = Base.metadata
 
 
+def render_item(type_: str, obj: object, autogen_context: object) -> str | bool:
+    """
+    Render custom column types as the database type they actually create.
+
+    Autogenerate otherwise emits `app.database.EnumValue(length=12)` — which
+    neither imports app.database nor passes the enum class the constructor
+    requires, so the migration fails to import. A migration describes the
+    schema, and in the database these are plain VARCHAR and DATETIME.
+    """
+    if type_ == "type":
+        if isinstance(obj, UtcDateTime):
+            return "sa.DateTime()"
+        if isinstance(obj, EnumValue):
+            return f"sa.String(length={obj.impl.length})"
+    return False
+
+
 def run_migrations_offline() -> None:
     """Emit SQL to stdout without connecting."""
     context.configure(
         url=config.get_main_option("sqlalchemy.url"),
         target_metadata=target_metadata,
+        render_item=render_item,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
         render_as_batch=True,
@@ -50,6 +68,7 @@ def run_migrations_online() -> None:
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
+            render_item=render_item,
             # SQLite cannot ALTER most things in place; batch mode rewrites the
             # table instead, so the same migrations run on SQLite and Postgres.
             render_as_batch=True,

@@ -46,6 +46,41 @@ class BookingAdditionOut(BaseModel):
     minutes: int
 
 
+class PaymentOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    status: str
+    amount_kes: int
+    #: Null until the callback arrives; present once the money moved.
+    mpesa_receipt: str | None
+    result_desc: str | None
+
+
+class BookingStatusOut(BaseModel):
+    """
+    What a reference alone may reveal.
+
+    Deliberately carries no personal data. The lookup exists so a client can
+    poll for their deposit, and a reference is short enough to enumerate, so
+    anything here is readable by anyone who guesses one.
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    reference: str
+    booking_date: date
+    slot_key: str
+    status: str
+    payment_method: str
+
+    amount_kes: int
+    deposit_kes: int
+    minutes: int
+
+    hold_expires_at: datetime | None
+    payments: list[PaymentOut] = []
+
+
 class BookingOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -67,3 +102,6 @@ class BookingOut(BaseModel):
     notes: str | None
 
     hold_expires_at: datetime | None
+
+    #: The deposit attempts, oldest first. Empty for a studio booking.
+    payments: list[PaymentOut] = []

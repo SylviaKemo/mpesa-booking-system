@@ -82,7 +82,47 @@ so the table-rewrite SQLite needs happens automatically.
 | `GET /api/health` | Liveness, including a database round trip |
 | `GET /api/catalogue` | The menu, in display order |
 | `GET /api/availability?date=YYYY-MM-DD` | Every slot for a day, free or taken |
-| `POST /api/bookings` | Create a booking |
+| `POST /api/bookings` | Create a booking; sends an M-Pesa prompt when the deposit is by M-Pesa |
+| `GET /api/bookings/{reference}` | Look a booking up, to poll for payment |
+| `POST /api/mpesa/callback/{secret}` | Safaricom's verdict on a prompt |
+
+## M-Pesa
+
+Payment is asynchronous: the prompt is accepted at once, and whether the client
+entered their PIN arrives later on a callback. A booking therefore holds its
+slot as `pending_payment` until the callback settles it.
+
+`MPESA_PROVIDER=fake` records prompts in memory rather than sending them, so the
+whole flow runs without credentials or a public URL. Production refuses to start
+on the fake, and refuses to start without the credentials and callback secret.
+
+### Running against the real sandbox
+
+1. Create an app at [developer.safaricom.co.ke](https://developer.safaricom.co.ke)
+   and copy its Consumer Key and Secret.
+2. Expose the API: `ngrok http 8000`, and copy the https URL.
+3. Generate a callback secret:
+   `python -c "import secrets; print(secrets.token_urlsafe(32))"`
+4. Put all four in `.env`, and set `MPESA_PROVIDER=daraja`.
+5. Book with `payment_method: "mpesa"` and a real Safaricom number. The prompt
+   arrives on the handset; answering it confirms the booking.
+
+The callback URL is built for you as
+`<MPESA_CALLBACK_BASE_URL>/api/mpesa/callback/<MPESA_CALLBACK_SECRET>`.
+
+Three things the callback handler does not take on trust:
+
+- **The URL carries an unguessable secret.** Safaricom does not sign callbacks,
+  so without it anyone who found the endpoint could confirm a booking nobody
+  paid for.
+- **The amount is checked against what we asked for**, not read from the
+  payload.
+- **It is idempotent**, keyed on `CheckoutRequestID`. Safaricom retries until it
+  gets a 200, so the same confirmation arrives more than once.
+
+A failed or cancelled payment leaves the hold running rather than tearing it
+down, so the client can answer a fresh prompt without losing the slot; if they
+do nothing it lapses on its own.
 
 ## Design rules
 

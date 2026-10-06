@@ -35,6 +35,40 @@ class Settings(BaseSettings):
     # stops a slot being held years out where nobody would ever see it.
     max_booking_lead_days: int = 180
 
+    # "fake" records prompts in memory instead of sending them, so the flow can
+    # be built and tested without credentials. Production refuses it.
+    mpesa_provider: Literal["fake", "daraja"] = "fake"
+
+    # Safaricom does not sign callbacks, so the URL carries an unguessable
+    # segment: anyone who could guess it could post a forged confirmation.
+    # Never defaulted — a blank secret would make the endpoint world-writable.
+    mpesa_callback_secret: str = ""
+
+    # Daraja. The sandbox host by default; production is api.safaricom.co.ke.
+    mpesa_api_base_url: str = "https://sandbox.safaricom.co.ke"
+
+    # From the app you create at developer.safaricom.co.ke. Never defaulted.
+    mpesa_consumer_key: str = ""
+    mpesa_consumer_secret: str = ""
+
+    # 174379 is Safaricom's published sandbox till; production has your own.
+    mpesa_shortcode: str = "174379"
+
+    # Safaricom publishes this value for the sandbox, so it is a default rather
+    # than a secret. A production passkey is yours and must be set.
+    mpesa_passkey: str = (
+        "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919"
+    )
+
+    # Where Safaricom posts the result. Must be publicly reachable over HTTPS,
+    # so a tunnel locally. The secret segment is appended to it.
+    mpesa_callback_base_url: str = ""
+
+    @property
+    def mpesa_callback_url(self) -> str:
+        base = self.mpesa_callback_base_url.rstrip("/")
+        return f"{base}/api/mpesa/callback/{self.mpesa_callback_secret}"
+
     # NoDecode stops pydantic-settings JSON-decoding the raw environment value.
     # Without it a bare "http://localhost:3000" is handed to json.loads() and
     # raises before the validator below runs, so every CORS_ORIGINS value fails.
@@ -46,6 +80,30 @@ class Settings(BaseSettings):
         if isinstance(value, str):
             return [origin.strip() for origin in value.split(",") if origin.strip()]
         return value
+
+    @model_validator(mode="after")
+    def _real_provider_in_production(self) -> "Settings":
+        """A deployment that silently takes no payments is worse than one that refuses to start."""
+        if self.environment == "production":
+            if self.mpesa_provider != "daraja":
+                raise ValueError(
+                    "MPESA_PROVIDER must be 'daraja' when ENVIRONMENT=production."
+                )
+            missing = [
+                name
+                for name, value in (
+                    ("MPESA_CALLBACK_SECRET", self.mpesa_callback_secret),
+                    ("MPESA_CONSUMER_KEY", self.mpesa_consumer_key),
+                    ("MPESA_CONSUMER_SECRET", self.mpesa_consumer_secret),
+                    ("MPESA_CALLBACK_BASE_URL", self.mpesa_callback_base_url),
+                )
+                if not value
+            ]
+            if missing:
+                raise ValueError(
+                    f"Required in production but not set: {', '.join(missing)}."
+                )
+        return self
 
     @model_validator(mode="after")
     def _refuse_wildcard_origin_in_production(self) -> "Settings":

@@ -100,6 +100,11 @@ class Booking(Base):
     additions: Mapped[list["BookingAddition"]] = relationship(
         back_populates="booking", cascade="all, delete-orphan"
     )
+    payments: Mapped[list["Payment"]] = relationship(  # noqa: F821
+        back_populates="booking",
+        cascade="all, delete-orphan",
+        order_by="Payment.created_at",
+    )
 
     __table_args__ = (
         CheckConstraint("amount_kes >= 0", name="ck_bookings_amount_non_negative"),
