@@ -23,7 +23,8 @@ export function StepDone({ booking, amount }: StepDoneProps) {
   // The server's view, once the callback has landed. Until then the prompt is
   // still out and the sheet is polling.
   const confirmed = booking.booking?.status === "confirmed";
-  const awaitingPayment = booking.pay === "mpesa" && !confirmed;
+  const timedOut = booking.pollTimedOut && !confirmed;
+  const awaitingPayment = booking.pay === "mpesa" && !confirmed && !timedOut;
   const receipt = booking.booking?.payments.at(-1)?.mpesa_receipt ?? null;
 
   const dueLine =
@@ -38,17 +39,21 @@ export function StepDone({ booking, amount }: StepDoneProps) {
       </div>
 
       <h3 className={styles.headline}>
-        {awaitingPayment
-          ? "Check your phone"
-          : firstName
+        {timedOut
+          ? "Still waiting on payment"
+          : awaitingPayment
+            ? "Check your phone"
+            : firstName
             ? `${firstName}, you're booked`
             : "You're booked"}
       </h3>
 
       <p className={styles.body}>
-        {booking.error
-          ? booking.error
-          : awaitingPayment
+        {timedOut
+          ? `We have not seen the deposit yet. If you have paid, quote ${booking.reference ?? "your reference"} and we will sort it out; otherwise the slot frees up shortly and you can book again.`
+          : booking.error
+            ? booking.error
+            : awaitingPayment
             ? `An M-Pesa request for the deposit has been sent to ${phone}. Confirm it on your handset and the slot is locked in.`
             : booking.pay === "mpesa"
               ? `Deposit received${receipt ? ` — M-Pesa receipt ${receipt}` : ""}. Your slot is confirmed.`

@@ -74,6 +74,7 @@ export function useBooking(
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [booking, setBooking] = useState<BookingStatusResponse | null>(null);
+  const [pollTimedOut, setPollTimedOut] = useState(false);
 
   const patch = useCallback(
     (next: Partial<BookingState>) => setState((s) => ({ ...s, ...next })),
@@ -89,6 +90,7 @@ export function useBooking(
   const close = useCallback(() => {
     setError(null);
     setBooking(null);
+    setPollTimedOut(false);
     patch({ isOpen: false, step: "when", pay: null, reference: null });
   }, [patch]);
 
@@ -167,6 +169,15 @@ export function useBooking(
         // than losing it: without it the client cannot be helped.
         patch({ step: "done", reference: e.reference });
         setError(e.message);
+
+        // Load the booking too. Polling watches `booking`, so without this the
+        // screen would say "check your phone" while nothing was watching, and
+        // a payment that did go through would never show.
+        try {
+          setBooking(await getBooking(e.reference));
+        } catch {
+          // The reference is still on screen; that is the part that matters.
+        }
       } else {
         setError(
           e instanceof ApiError ? e.message : "Could not complete the booking.",
@@ -191,6 +202,9 @@ export function useBooking(
     const id = setInterval(() => {
       if (Date.now() - (startedPollingAt.current ?? 0) > POLL_TIMEOUT_MS) {
         clearInterval(id);
+        // Say so. Leaving "check your phone" up forever tells the client to
+        // expect something that is not coming, and their hold lapses anyway.
+        setPollTimedOut(true);
         return;
       }
 
@@ -214,6 +228,7 @@ export function useBooking(
     submitting,
     error,
     booking,
+    pollTimedOut,
     canContinue,
     canSubmit,
     open,

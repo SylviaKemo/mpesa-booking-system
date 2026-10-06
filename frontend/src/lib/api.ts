@@ -5,7 +5,17 @@
  * either side shows up here as a type error rather than as undefined at runtime.
  */
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+/**
+ * In the browser: same origin, because next.config rewrites /api/* to the API.
+ * Nothing about the API host reaches the bundle, so one build runs anywhere.
+ *
+ * On the server: an absolute URL, since fetch has no origin to be relative to.
+ * Read at request time, so a deployment can repoint it without rebuilding.
+ */
+const BASE_URL =
+  typeof window === "undefined"
+    ? (process.env.API_URL ?? "http://localhost:8000")
+    : "";
 
 export type Tier = {
   id: string;
@@ -120,13 +130,38 @@ export class ApiError extends Error {
   }
 }
 
-type Detail = string | { message?: string; reference?: string; reason?: string };
+type StructuredDetail = { message?: string; reference?: string; reason?: string };
+/** FastAPI returns a list of these when a request fails schema validation. */
+type ValidationItem = { loc?: unknown[]; msg?: string };
+type Detail = string | StructuredDetail | ValidationItem[];
 
 function readDetail(body: unknown, fallback: string): Detail {
   if (body && typeof body === "object" && "detail" in body) {
     return (body as { detail: Detail }).detail;
   }
   return fallback;
+}
+
+/**
+ * Turn FastAPI's validation list into something a person can act on.
+ *
+ * Without this every schema failure — a field too long, a malformed date, an
+ * unknown payment method — reads as a generic error on the one screen where
+ * the client could have fixed it.
+ */
+function describeValidation(items: ValidationItem[]): string {
+  const messages = items
+    .map((item) => {
+      // loc is ["body", "phone"]; the field name is the part worth showing.
+      const field = Array.isArray(item.loc) ? item.loc.at(-1) : undefined;
+      const msg = item.msg ?? "is not valid";
+      return typeof field === "string" && field !== "body"
+        ? `${field}: ${msg}`
+        : msg;
+    })
+    .filter(Boolean);
+
+  return messages.length ? messages.join("; ") : "Please check the details.";
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -150,6 +185,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
     if (typeof detail === "string") {
       throw new ApiError(detail, response.status);
+    }
+    if (Array.isArray(detail)) {
+      throw new ApiError(describeValidation(detail), response.status);
     }
     throw new ApiError(
       detail.message ?? "Something went wrong.",
