@@ -6,8 +6,13 @@ until now. Once this runs, the database is: the server prices every booking from
 these rows and never trusts an amount sent by a client.
 
 Idempotent — safe to run on every deploy.
+
+Items removed from the data below are deactivated rather than deleted, so they
+leave the menu while any booking that referenced them keeps pointing at a row
+that still exists.
 """
 
+from sqlalchemy import update
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
@@ -66,10 +71,12 @@ ADDITIONS: list[dict] = [
 
 def seed_catalogue(db: Session) -> None:
     """
-    Insert or update the catalogue in place.
+    Reconcile the catalogue with the data above.
 
-    Rows are merged rather than deleted and recreated, so bookings that
-    reference a tier keep pointing at a row that still exists.
+    Rows present here are inserted or updated and marked active; rows absent
+    here are deactivated, not deleted, so a booking that referenced a tier keeps
+    pointing at a row that still exists. Without that second step the catalogue
+    could only ever grow and a withdrawn service would stay bookable.
     """
     for set_position, set_data in enumerate(SETS):
         tiers = set_data["tiers"]
@@ -82,6 +89,7 @@ def seed_catalogue(db: Session) -> None:
                 image_url=set_data["image_url"],
                 image_alt=set_data["image_alt"],
                 position=set_position,
+                is_active=True,
             )
         )
         # Flushed before the tiers so the foreign key target exists.
@@ -97,6 +105,7 @@ def seed_catalogue(db: Session) -> None:
                     minutes=tier["minutes"],
                     note=tier.get("note"),
                     position=tier_position,
+                    is_active=True,
                 )
             )
 
@@ -108,10 +117,30 @@ def seed_catalogue(db: Session) -> None:
                 amount_kes=addition["amount_kes"],
                 minutes=addition["minutes"],
                 position=position,
+                is_active=True,
             )
         )
 
+    _deactivate_absent(db)
     db.commit()
+
+
+def _deactivate_absent(db: Session) -> None:
+    """Take anything no longer in the seed data off the menu."""
+    live_set_ids = [s["id"] for s in SETS]
+    live_tier_ids = [t["id"] for s in SETS for t in s["tiers"]]
+    live_addition_ids = [a["id"] for a in ADDITIONS]
+
+    for model, live_ids in (
+        (LashSet, live_set_ids),
+        (Tier, live_tier_ids),
+        (Addition, live_addition_ids),
+    ):
+        db.execute(
+            update(model)
+            .where(model.id.not_in(live_ids))
+            .values(is_active=False)
+        )
 
 
 def main() -> None:

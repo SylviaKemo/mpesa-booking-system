@@ -109,3 +109,89 @@ def test_reseeding_updates_a_changed_price(db: Session) -> None:
         for model in (Tier, LashSet, Addition):
             db.query(model).delete()
         db.commit()
+
+
+@pytest.mark.usefixtures("seeded")
+def test_withdrawn_addition_leaves_the_menu(client: TestClient, db: Session) -> None:
+    """
+    Removing an item from the seed data must take it off the menu.
+
+    Deactivation, not deletion: the row survives so a booking that referenced
+    it still resolves.
+    """
+    addition = db.get(Addition, "glitter")
+    assert addition is not None
+    addition.is_active = False
+    db.commit()
+
+    body = client.get("/api/catalogue").json()
+
+    assert "glitter" not in [a["id"] for a in body["additions"]]
+    assert db.get(Addition, "glitter") is not None
+
+
+@pytest.mark.usefixtures("seeded")
+def test_withdrawn_tier_leaves_its_set_but_the_set_remains(
+    client: TestClient, db: Session
+) -> None:
+    tier = db.get(Tier, "wispy-vol")
+    assert tier is not None
+    tier.is_active = False
+    db.commit()
+
+    body = client.get("/api/catalogue").json()
+    wispy = next(s for s in body["sets"] if s["id"] == "wispy")
+
+    assert [t["id"] for t in wispy["tiers"]] == ["wispy-basic", "wispy-mid"]
+
+
+@pytest.mark.usefixtures("seeded")
+def test_withdrawn_set_leaves_the_menu(client: TestClient, db: Session) -> None:
+    lash_set = db.get(LashSet, "cat")
+    assert lash_set is not None
+    lash_set.is_active = False
+    db.commit()
+
+    body = client.get("/api/catalogue").json()
+
+    assert [s["id"] for s in body["sets"]] == ["wispy", "classic"]
+
+
+def test_reseeding_deactivates_items_dropped_from_the_data(
+    db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """
+    Without this reconciliation the catalogue could only grow, and a withdrawn
+    service would stay bookable forever.
+    """
+    import app.seed as seed_module
+
+    try:
+        seed_catalogue(db)
+
+        monkeypatch.setattr(
+            seed_module,
+            "ADDITIONS",
+            [a for a in ADDITIONS if a["id"] != "glitter"],
+        )
+        seed_catalogue(db)
+
+        glitter = db.get(Addition, "glitter")
+        assert glitter is not None, "row must survive so bookings still resolve"
+        db.refresh(glitter)
+        assert glitter.is_active is False
+        assert db.get(Addition, "removal").is_active is True
+    finally:
+        for model in (Tier, LashSet, Addition):
+            db.query(model).delete()
+        db.commit()
+
+
+def test_additions_card_cannot_be_mutated_through_a_response() -> None:
+    """One instance is shared by every response, so it must be immutable."""
+    from pydantic import ValidationError
+
+    from app.api.catalogue import ADDITIONS_CARD
+
+    with pytest.raises(ValidationError):
+        ADDITIONS_CARD.name = "MUTATED"

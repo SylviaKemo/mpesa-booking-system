@@ -1,4 +1,4 @@
-from sqlalchemy import CheckConstraint, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, CheckConstraint, ForeignKey, Integer, String, Text, true
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -23,6 +23,12 @@ class LashSet(Base):
     # Display order is editorial, not alphabetical, and row order from a
     # database is not guaranteed — so it is stored rather than inferred.
     position: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    # Items leave the menu by being deactivated, never deleted: a past booking
+    # must keep pointing at the row it was priced from.
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=true()
+    )
 
     tiers: Mapped[list["Tier"]] = relationship(
         back_populates="lash_set",
@@ -52,6 +58,12 @@ class Tier(Base):
     note: Mapped[str | None] = mapped_column(String(80), nullable=True)
     position: Mapped[int] = mapped_column(Integer, nullable=False)
 
+    # Items leave the menu by being deactivated, never deleted: a past booking
+    # must keep pointing at the row it was priced from.
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=true()
+    )
+
     lash_set: Mapped[LashSet] = relationship(back_populates="tiers")
 
     __table_args__ = (
@@ -71,6 +83,12 @@ class Addition(Base):
     amount_kes: Mapped[int] = mapped_column(Integer, nullable=False)
     minutes: Mapped[int] = mapped_column(Integer, nullable=False)
     position: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    # Items leave the menu by being deactivated, never deleted: a past booking
+    # must keep pointing at the row it was priced from.
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=true()
+    )
 
     __table_args__ = (
         CheckConstraint("amount_kes >= 0", name="ck_additions_amount_non_negative"),

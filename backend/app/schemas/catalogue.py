@@ -34,7 +34,14 @@ class AdditionOut(BaseModel):
 
 
 class AdditionsCardOut(BaseModel):
-    """Presentation copy for the additions card, not priced catalogue data."""
+    """
+    Presentation copy for the additions card, not priced catalogue data.
+
+    Frozen because a single instance is shared across every response; without
+    it, mutating one response would change what every later request serves.
+    """
+
+    model_config = ConfigDict(frozen=True)
 
     name: str
     blurb: str
