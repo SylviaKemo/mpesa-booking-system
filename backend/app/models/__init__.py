@@ -12,6 +12,7 @@ from app.models.booking import (
     PaymentMethod,
 )
 from app.models.catalogue import Addition, LashSet, Tier
+from app.models.payment import Payment, PaymentStatus
 
 __all__ = [
     "Addition",
@@ -21,6 +22,8 @@ __all__ = [
     "BookingStatus",
     "LIVE_BOOKING_PREDICATE",
     "LashSet",
+    "Payment",
     "PaymentMethod",
+    "PaymentStatus",
     "Tier",
 ]

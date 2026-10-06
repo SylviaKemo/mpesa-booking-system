@@ -63,7 +63,43 @@ def test_wildcard_origin_is_refused_in_production(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     with pytest.raises(ValidationError, match="CORS_ORIGINS"):
-        _settings_from_env(monkeypatch, CORS_ORIGINS="*", ENVIRONMENT="production")
+        # The rest of the production config is supplied so this reaches the
+        # CORS check rather than tripping an earlier guard.
+        _settings_from_env(
+            monkeypatch,
+            CORS_ORIGINS="*",
+            ENVIRONMENT="production",
+            MPESA_PROVIDER="daraja",
+            MPESA_CALLBACK_SECRET="s3cret",
+        )
+
+
+def test_production_refuses_the_fake_payment_provider(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A deployment that silently takes no payments is worse than one that will not start."""
+    with pytest.raises(ValidationError, match="MPESA_PROVIDER"):
+        _settings_from_env(
+            monkeypatch,
+            ENVIRONMENT="production",
+            CORS_ORIGINS="https://shamimstyles.co.ke",
+        )
+
+
+def test_production_requires_a_callback_secret(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Without it the callback URL is guessable and anyone could forge a confirmation."""
+    # conftest sets a secret for the whole session; this case needs it absent.
+    monkeypatch.delenv("MPESA_CALLBACK_SECRET", raising=False)
+
+    with pytest.raises(ValidationError, match="MPESA_CALLBACK_SECRET"):
+        _settings_from_env(
+            monkeypatch,
+            ENVIRONMENT="production",
+            CORS_ORIGINS="https://shamimstyles.co.ke",
+            MPESA_PROVIDER="daraja",
+        )
 
 
 def test_is_sqlite_detects_driver() -> None:

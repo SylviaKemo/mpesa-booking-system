@@ -46,6 +46,16 @@ class BookingAdditionOut(BaseModel):
     minutes: int
 
 
+class PaymentOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    status: str
+    amount_kes: int
+    #: Null until the callback arrives; present once the money moved.
+    mpesa_receipt: str | None
+    result_desc: str | None
+
+
 class BookingOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -67,3 +77,6 @@ class BookingOut(BaseModel):
     notes: str | None
 
     hold_expires_at: datetime | None
+
+    #: The deposit attempts, oldest first. Empty for a studio booking.
+    payments: list[PaymentOut] = []

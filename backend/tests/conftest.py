@@ -12,6 +12,7 @@ _tmp_dir = tempfile.mkdtemp(prefix="shamim-test-")
 _db_path = Path(_tmp_dir) / "test.db"
 os.environ["DATABASE_URL"] = f"sqlite:///{_db_path}"
 os.environ["ENVIRONMENT"] = "development"
+os.environ["MPESA_CALLBACK_SECRET"] = "test-callback-secret"
 
 from alembic import command  # noqa: E402
 from alembic.config import Config  # noqa: E402
@@ -25,8 +26,10 @@ from app.models import (  # noqa: E402
     Booking,
     BookingAddition,
     LashSet,
+    Payment,
     Tier,
 )
+from app.services.mpesa import get_provider  # noqa: E402
 from app.seed import seed_catalogue  # noqa: E402
 
 _BACKEND_ROOT = Path(__file__).resolve().parent.parent
@@ -61,6 +64,20 @@ def client() -> Generator[TestClient, None, None]:
         yield test_client
 
 
+@pytest.fixture(autouse=True)
+def _reset_mpesa() -> Generator[None, None, None]:
+    """The fake provider is a module singleton, so each test starts it clean."""
+    get_provider().reset()
+    yield
+    get_provider().reset()
+
+
+@pytest.fixture
+def mpesa() -> object:
+    """The fake provider, for asserting what was sent and forcing failures."""
+    return get_provider()
+
+
 @pytest.fixture
 def db() -> Generator[Session, None, None]:
     session = SessionLocal()
@@ -82,6 +99,6 @@ def seeded(db: Session) -> Generator[None, None, None]:
     yield
     # Children before parents: bookings reference tiers and additions, and the
     # foreign keys are enforced on SQLite too, so the reverse order fails.
-    for model in (BookingAddition, Booking, Tier, LashSet, Addition):
+    for model in (Payment, BookingAddition, Booking, Tier, LashSet, Addition):
         db.query(model).delete()
     db.commit()

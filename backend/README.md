@@ -82,7 +82,33 @@ so the table-rewrite SQLite needs happens automatically.
 | `GET /api/health` | Liveness, including a database round trip |
 | `GET /api/catalogue` | The menu, in display order |
 | `GET /api/availability?date=YYYY-MM-DD` | Every slot for a day, free or taken |
-| `POST /api/bookings` | Create a booking |
+| `POST /api/bookings` | Create a booking; sends an M-Pesa prompt when the deposit is by M-Pesa |
+| `GET /api/bookings/{reference}` | Look a booking up, to poll for payment |
+| `POST /api/mpesa/callback/{secret}` | Safaricom's verdict on a prompt |
+
+## M-Pesa
+
+Payment is asynchronous: the prompt is accepted at once, and whether the client
+entered their PIN arrives later on a callback. A booking therefore holds its
+slot as `pending_payment` until the callback settles it.
+
+`MPESA_PROVIDER=fake` records prompts in memory rather than sending them, so the
+whole flow runs without credentials or a public URL. Production refuses to start
+on the fake, and refuses to start without a callback secret.
+
+Three things the callback handler does not take on trust:
+
+- **The URL carries an unguessable secret.** Safaricom does not sign callbacks,
+  so without it anyone who found the endpoint could confirm a booking nobody
+  paid for.
+- **The amount is checked against what we asked for**, not read from the
+  payload.
+- **It is idempotent**, keyed on `CheckoutRequestID`. Safaricom retries until it
+  gets a 200, so the same confirmation arrives more than once.
+
+A failed or cancelled payment leaves the hold running rather than tearing it
+down, so the client can answer a fresh prompt without losing the slot; if they
+do nothing it lapses on its own.
 
 ## Design rules
 

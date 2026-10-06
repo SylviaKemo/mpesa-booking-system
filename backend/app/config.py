@@ -35,6 +35,15 @@ class Settings(BaseSettings):
     # stops a slot being held years out where nobody would ever see it.
     max_booking_lead_days: int = 180
 
+    # "fake" records prompts in memory instead of sending them, so the flow can
+    # be built and tested without credentials. Production refuses it.
+    mpesa_provider: Literal["fake", "daraja"] = "fake"
+
+    # Safaricom does not sign callbacks, so the URL carries an unguessable
+    # segment: anyone who could guess it could post a forged confirmation.
+    # Never defaulted — a blank secret would make the endpoint world-writable.
+    mpesa_callback_secret: str = ""
+
     # NoDecode stops pydantic-settings JSON-decoding the raw environment value.
     # Without it a bare "http://localhost:3000" is handed to json.loads() and
     # raises before the validator below runs, so every CORS_ORIGINS value fails.
@@ -46,6 +55,20 @@ class Settings(BaseSettings):
         if isinstance(value, str):
             return [origin.strip() for origin in value.split(",") if origin.strip()]
         return value
+
+    @model_validator(mode="after")
+    def _real_provider_in_production(self) -> "Settings":
+        """A deployment that silently takes no payments is worse than one that refuses to start."""
+        if self.environment == "production":
+            if self.mpesa_provider != "daraja":
+                raise ValueError(
+                    "MPESA_PROVIDER must be 'daraja' when ENVIRONMENT=production."
+                )
+            if not self.mpesa_callback_secret:
+                raise ValueError(
+                    "MPESA_CALLBACK_SECRET is required when ENVIRONMENT=production."
+                )
+        return self
 
     @model_validator(mode="after")
     def _refuse_wildcard_origin_in_production(self) -> "Settings":
