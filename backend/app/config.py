@@ -1,5 +1,6 @@
 from functools import lru_cache
 from typing import Annotated, Literal
+from zoneinfo import ZoneInfo, available_timezones
 
 from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
@@ -24,6 +25,15 @@ class Settings(BaseSettings):
 
     # SQLite by default; a postgresql+psycopg:// URL works unchanged.
     database_url: str = "sqlite:///./shamim.db"
+
+    # The salon's wall clock. A deployment running UTC would otherwise disagree
+    # with Nairobi for three hours every night, and treat a day that has already
+    # finished locally as still bookable.
+    salon_timezone: str = "Africa/Nairobi"
+
+    # How far ahead a booking may be made. Mirrors what the calendar offers, and
+    # stops a slot being held years out where nobody would ever see it.
+    max_booking_lead_days: int = 180
 
     # NoDecode stops pydantic-settings JSON-decoding the raw environment value.
     # Without it a bare "http://localhost:3000" is handed to json.loads() and
@@ -50,6 +60,17 @@ class Settings(BaseSettings):
                 "List the exact origins allowed to call the API."
             )
         return self
+
+    @field_validator("salon_timezone")
+    @classmethod
+    def _known_timezone(cls, value: str) -> str:
+        if value not in available_timezones():
+            raise ValueError(f"Unknown timezone: {value!r}")
+        return value
+
+    @property
+    def tz(self) -> ZoneInfo:
+        return ZoneInfo(self.salon_timezone)
 
     @property
     def is_sqlite(self) -> bool:

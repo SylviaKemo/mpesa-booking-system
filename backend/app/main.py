@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import catalogue, health
+from app.api import bookings, catalogue, health
 from app.config import get_settings
 
 
@@ -33,6 +33,7 @@ def create_app() -> FastAPI:
 
     app.include_router(health.router, prefix="/api")
     app.include_router(catalogue.router, prefix="/api")
+    app.include_router(bookings.router, prefix="/api")
 
     return app
 
