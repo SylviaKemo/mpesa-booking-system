@@ -78,6 +78,14 @@ class CallbackOutcome:
     detail: str
 
 
+def _as_int(value: object) -> int | None:
+    """Safaricom sends Amount as a number, but never assume it."""
+    try:
+        return int(float(value))  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return None
+
+
 def _extract(payload: dict[str, Any]) -> tuple[str, int, str, dict[str, Any]]:
     """
     Pull what matters out of Safaricom's envelope.
@@ -138,11 +146,14 @@ def handle_callback(db: Session, payload: dict[str, Any]) -> CallbackOutcome:
         db.commit()
         return CallbackOutcome(True, False, f"Payment failed: {result_desc}")
 
-    paid = items.get("Amount")
     # Safaricom sends the amount back as a number; compare against what we asked
     # for rather than believing the payload, so a forged or altered callback
-    # cannot confirm a booking that was not paid for.
-    if paid is None or int(paid) != payment.amount_kes:
+    # cannot confirm a booking that was not paid for. An unparseable amount is
+    # treated the same as a wrong one — letting the ValueError escape would be
+    # swallowed by the endpoint's parse handler and strand the payment pending.
+    paid = _as_int(items.get("Amount"))
+
+    if paid is None or paid != payment.amount_kes:
         payment.status = PaymentStatus.FAILED
         payment.result_desc = (
             f"Amount mismatch: expected {payment.amount_kes}, callback said {paid}"
@@ -156,8 +167,30 @@ def handle_callback(db: Session, payload: dict[str, Any]) -> CallbackOutcome:
         db.commit()
         return CallbackOutcome(True, False, "Amount mismatch")
 
-    payment.status = PaymentStatus.SUCCEEDED
     payment.mpesa_receipt = str(items.get("MpesaReceiptNumber") or "") or None
+
+    # The booking may no longer be claimable: a hold lapses after HOLD_MINUTES
+    # and the slot is released, so by the time a late confirmation arrives
+    # somebody else may hold it. Confirming regardless would violate the slot
+    # index and crash in a retry loop, and silently dropping it would lose the
+    # fact that the client's money moved.
+    if booking.status is not BookingStatus.PENDING_PAYMENT:
+        payment.status = PaymentStatus.ORPHANED
+        payment.result_desc = (
+            f"Paid after the booking became {booking.status.value}; "
+            "needs a refund or a new slot."
+        )
+        logger.error(
+            "ORPHANED PAYMENT on %s: receipt %s, KES %s, booking is %s",
+            booking.reference,
+            payment.mpesa_receipt,
+            payment.amount_kes,
+            booking.status.value,
+        )
+        db.commit()
+        return CallbackOutcome(True, False, "Paid, but the slot was gone")
+
+    payment.status = PaymentStatus.SUCCEEDED
 
     # The deposit cleared, so the slot is the client's; the hold has done its job.
     booking.status = BookingStatus.CONFIRMED

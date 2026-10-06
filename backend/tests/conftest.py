@@ -13,6 +13,16 @@ _db_path = Path(_tmp_dir) / "test.db"
 os.environ["DATABASE_URL"] = f"sqlite:///{_db_path}"
 os.environ["ENVIRONMENT"] = "development"
 os.environ["MPESA_CALLBACK_SECRET"] = "test-callback-secret"
+os.environ["MPESA_PROVIDER"] = "fake"
+
+# Stop Settings reading the developer's .env. Without this the suite inherits
+# whatever is configured locally: a real MPESA_PROVIDER=daraja makes tests fire
+# live Safaricom requests, and a populated .env masks the cases that assert a
+# value is absent. Must happen before anything constructs Settings — importing
+# app.database alone is enough to do that.
+from app.config import Settings  # noqa: E402
+
+Settings.model_config["env_file"] = None
 
 from alembic import command  # noqa: E402
 from alembic.config import Config  # noqa: E402

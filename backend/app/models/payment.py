@@ -15,6 +15,9 @@ class PaymentStatus(str, enum.Enum):
     SUCCEEDED = "succeeded"
     #: Cancelled, wrong PIN, insufficient funds, or timed out.
     FAILED = "failed"
+    #: The money moved, but the slot was gone by the time we heard. Needs a
+    #: person: the client has paid for a booking they do not have.
+    ORPHANED = "orphaned"
 
 
 class Payment(Base):

@@ -56,6 +56,31 @@ class PaymentOut(BaseModel):
     result_desc: str | None
 
 
+class BookingStatusOut(BaseModel):
+    """
+    What a reference alone may reveal.
+
+    Deliberately carries no personal data. The lookup exists so a client can
+    poll for their deposit, and a reference is short enough to enumerate, so
+    anything here is readable by anyone who guesses one.
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    reference: str
+    booking_date: date
+    slot_key: str
+    status: str
+    payment_method: str
+
+    amount_kes: int
+    deposit_kes: int
+    minutes: int
+
+    hold_expires_at: datetime | None
+    payments: list[PaymentOut] = []
+
+
 class BookingOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
