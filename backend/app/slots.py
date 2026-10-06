@@ -7,7 +7,7 @@ label — is what a booking stores and what the uniqueness constraint uses, so
 rewording a label can never free or collide a slot.
 """
 
-from datetime import time
+from datetime import date, datetime, time, tzinfo
 from typing import Final, NamedTuple
 
 
@@ -33,3 +33,13 @@ SLOTS_BY_KEY: Final[dict[str, Slot]] = {slot.key: slot for slot in SLOTS}
 
 def get_slot(key: str) -> Slot | None:
     return SLOTS_BY_KEY.get(key)
+
+
+def starts_at(slot: Slot, on: date, tz: tzinfo) -> datetime:
+    """
+    The instant a slot begins, in the salon's timezone.
+
+    Slot times are the salon's wall clock, so they only become a point in time
+    once anchored to a day and that timezone.
+    """
+    return datetime.combine(on, slot.start, tzinfo=tz)

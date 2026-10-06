@@ -15,9 +15,10 @@ from app.models import (
     BookingStatus,
     PaymentMethod,
 )
+from app.config import get_settings
 from app.services.phone import normalise
 from app.services.pricing import Quote, quote
-from app.slots import SLOTS, get_slot
+from app.slots import SLOTS, get_slot, starts_at
 
 #: How long a slot is held while an M-Pesa deposit is confirmed. Long enough to
 #: re-enter a PIN, short enough that an abandoned attempt frees the slot.
@@ -37,6 +38,23 @@ class SlotUnavailable(BookingError):
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def _salon_now() -> datetime:
+    """
+    Now, on the salon's wall clock.
+
+    Whether a slot has passed is a question about Nairobi, not about wherever
+    the server happens to run.
+    """
+    return datetime.now(get_settings().tz)
+
+
+def _slot_has_passed(on: date, slot_key: str, now: datetime | None = None) -> bool:
+    slot = get_slot(slot_key)
+    if slot is None:
+        return True
+    return starts_at(slot, on, get_settings().tz) <= (now or _salon_now())
 
 
 def _make_reference() -> str:
@@ -61,6 +79,17 @@ def _slot_is_taken(db: Session, on: date, slot_key: str) -> bool:
         )
         is not None
     )
+
+
+def _is_reference_conflict(exc: IntegrityError) -> bool:
+    """
+    Whether a failed insert clashed on the reference.
+
+    Dialects word this differently — SQLite names the column, Postgres the
+    constraint — so both spellings are checked rather than assuming one.
+    """
+    message = str(exc.orig).lower()
+    return "reference" in message
 
 
 def expire_stale_holds(db: Session) -> int:
@@ -109,14 +138,18 @@ def availability(db: Session, on: date, today: date | None = None) -> list[SlotA
         ).all()
     )
 
-    # A past day has no bookable slots, whatever the booking table says.
-    day_is_past = on < (today or date.today())
+    # Comparing whole days would leave this morning's slots on offer all
+    # afternoon, so each slot is judged against its own start time.
+    now = _salon_now()
 
     return [
         SlotAvailability(
             key=slot.key,
             label=slot.label,
-            available=not day_is_past and slot.key not in taken,
+            available=(
+                slot.key not in taken
+                and starts_at(slot, on, get_settings().tz) > now
+            ),
         )
         for slot in SLOTS
     ]
@@ -145,8 +178,17 @@ def create_booking(
     if get_slot(slot_key) is None:
         raise BookingError(f"Unknown time slot: {slot_key!r}")
 
-    if booking_date < (today or date.today()):
-        raise BookingError("That date has already passed.")
+    settings = get_settings()
+    salon_today = (today or _salon_now().date())
+
+    if booking_date > salon_today + timedelta(days=settings.max_booking_lead_days):
+        raise BookingError(
+            f"Bookings open {settings.max_booking_lead_days} days ahead. "
+            "Please choose an earlier date."
+        )
+
+    if _slot_has_passed(booking_date, slot_key):
+        raise BookingError("That time has already passed. Please choose another.")
 
     customer_name = (name or "").strip()
     if not customer_name:
@@ -211,6 +253,13 @@ def create_booking(
                 raise SlotUnavailable(
                     "That time has just been taken. Please choose another."
                 ) from exc
+
+            # Only a reference clash is worth another go. Anything else — a
+            # foreign key, a check constraint — will fail identically five more
+            # times and then be reported as a reference problem, sending whoever
+            # debugs it to the wrong place.
+            if not _is_reference_conflict(exc):
+                raise
             continue
 
         db.refresh(booking)

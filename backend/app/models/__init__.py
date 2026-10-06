@@ -5,6 +5,7 @@ Alembic autogenerate compares the database against.
 
 from app.models.booking import (
     BLOCKING_STATUSES,
+    LIVE_BOOKING_PREDICATE,
     Booking,
     BookingAddition,
     BookingStatus,
@@ -18,6 +19,7 @@ __all__ = [
     "Booking",
     "BookingAddition",
     "BookingStatus",
+    "LIVE_BOOKING_PREDICATE",
     "LashSet",
     "PaymentMethod",
     "Tier",

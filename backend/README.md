@@ -109,6 +109,12 @@ time rather than blocking it forever. Unpaid M-Pesa holds lapse after
 `HOLD_MINUTES` and are released lazily whenever availability is read or a
 booking is made — there is no background worker yet.
 
+**Times belong to the salon, not the server.** Whether a slot has passed is
+judged against `SALON_TIMEZONE`, and per slot rather than per day — comparing
+whole dates would leave the morning's appointments on offer all afternoon.
+Bookings are bounded by `MAX_BOOKING_LEAD_DAYS` so a slot cannot be held years
+out where nobody would see it.
+
 **Timestamps are UTC and timezone-aware**, via the `UtcDateTime` type. SQLite
 has no aware type and would otherwise hand back naive values that crash on
 comparison, while Postgres would not — the same code failing in only one

@@ -39,6 +39,15 @@ BLOCKING_STATUSES: tuple[BookingStatus, ...] = (
     BookingStatus.CONFIRMED,
 )
 
+#: The partial index predicate, derived from BLOCKING_STATUSES rather than
+#: written out again. Hand-copying it means a status added above silently stops
+#: being enforced by the database while the code still believes it blocks.
+#: Changing BLOCKING_STATUSES therefore needs a migration — a test asserts the
+#: live index still matches.
+LIVE_BOOKING_PREDICATE = "status IN ({})".format(
+    ", ".join(f"'{status.value}'" for status in BLOCKING_STATUSES)
+)
+
 
 class PaymentMethod(str, enum.Enum):
     MPESA = "mpesa"
@@ -100,12 +109,8 @@ class Booking(Base):
             "booking_date",
             "slot_key",
             unique=True,
-            sqlite_where=text(
-                "status IN ('pending_payment', 'confirmed')"
-            ),
-            postgresql_where=text(
-                "status IN ('pending_payment', 'confirmed')"
-            ),
+            sqlite_where=text(LIVE_BOOKING_PREDICATE),
+            postgresql_where=text(LIVE_BOOKING_PREDICATE),
         ),
     )
 
