@@ -91,6 +91,10 @@ export function useBooking(
     setError(null);
     setBooking(null);
     setPollTimedOut(false);
+    // Not carried into the next attempt: a failure from last time is not news
+    // about this one, and keeping it would hide times that now load fine.
+    setSlotsError(null);
+    setFetched(null);
     patch({ isOpen: false, step: "when", pay: null, reference: null });
   }, [patch]);
 
@@ -110,7 +114,13 @@ export function useBooking(
 
     getAvailability(toIsoDate(dayKey))
       .then((data) => {
-        if (!cancelled) setFetched({ dayKey, slots: data.slots });
+        if (cancelled) return;
+        setFetched({ dayKey, slots: data.slots });
+        // A retry that works has to clear the earlier failure, or the day stays
+        // unbookable however many times it is reloaded.
+        setSlotsError((previous) =>
+          previous?.dayKey === dayKey ? null : previous,
+        );
       })
       .catch((e: unknown) => {
         if (!cancelled) {
