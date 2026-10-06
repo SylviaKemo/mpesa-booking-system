@@ -23,6 +23,7 @@ python -m venv .venv
 pip install -r requirements-dev.txt
 cp .env.example .env
 alembic upgrade head
+python -m app.seed
 uvicorn app.main:app --reload
 ```
 
@@ -35,6 +36,7 @@ The API listens on `http://localhost:8000`. Interactive docs are at `/docs`.
 | `uvicorn app.main:app --reload` | Run with reload |
 | `pytest` | Run the suite |
 | `alembic upgrade head` | Apply migrations |
+| `python -m app.seed` | Seed the catalogue (idempotent) |
 | `alembic revision --autogenerate -m "..."` | Create a migration from model changes |
 
 ## Layout
@@ -77,7 +79,11 @@ so the table-rewrite SQLite needs happens automatically.
 
 **The server is the price authority.** Clients send tier and addition *IDs*;
 the server looks up its own catalogue and computes the total and deposit. An
-amount sent by a client is never trusted. (Lands with the catalogue slice.)
+amount sent by a client is never trusted.
+
+The catalogue lives in the database and is seeded from `app/seed.py`, whose
+values mirror `frontend/src/data/services.ts`. Seeding is idempotent and
+merges rather than replaces, so bookings keep referencing a live tier.
 
 **Money is stored in whole KES.** Prices in this business are whole shillings,
 so amounts are integers — no floats anywhere near a total.
