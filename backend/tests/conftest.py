@@ -20,7 +20,13 @@ from sqlalchemy.orm import Session  # noqa: E402
 
 from app.database import SessionLocal, engine  # noqa: E402
 from app.main import create_app  # noqa: E402
-from app.models import Addition, LashSet, Tier  # noqa: E402
+from app.models import (  # noqa: E402
+    Addition,
+    Booking,
+    BookingAddition,
+    LashSet,
+    Tier,
+)
 from app.seed import seed_catalogue  # noqa: E402
 
 _BACKEND_ROOT = Path(__file__).resolve().parent.parent
@@ -74,6 +80,8 @@ def seeded(db: Session) -> Generator[None, None, None]:
     """
     seed_catalogue(db)
     yield
-    for model in (Tier, LashSet, Addition):
+    # Children before parents: bookings reference tiers and additions, and the
+    # foreign keys are enforced on SQLite too, so the reverse order fails.
+    for model in (BookingAddition, Booking, Tier, LashSet, Addition):
         db.query(model).delete()
     db.commit()

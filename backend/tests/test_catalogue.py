@@ -2,7 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.models import Addition, LashSet, Tier
+from app.models import Addition, Booking, BookingAddition, LashSet, Tier
 from app.seed import ADDITIONS, SETS, seed_catalogue
 
 
@@ -84,7 +84,7 @@ def test_seeding_twice_does_not_duplicate_rows(db: Session) -> None:
         assert db.query(Tier).count() == sum(len(s["tiers"]) for s in SETS)
         assert db.query(Addition).count() == len(ADDITIONS)
     finally:
-        for model in (Tier, LashSet, Addition):
+        for model in (BookingAddition, Booking, Tier, LashSet, Addition):
             db.query(model).delete()
         db.commit()
 
@@ -106,7 +106,7 @@ def test_reseeding_updates_a_changed_price(db: Session) -> None:
         db.refresh(tier)
         assert tier.amount_kes == 700
     finally:
-        for model in (Tier, LashSet, Addition):
+        for model in (BookingAddition, Booking, Tier, LashSet, Addition):
             db.query(model).delete()
         db.commit()
 
@@ -182,7 +182,7 @@ def test_reseeding_deactivates_items_dropped_from_the_data(
         assert glitter.is_active is False
         assert db.get(Addition, "removal").is_active is True
     finally:
-        for model in (Tier, LashSet, Addition):
+        for model in (BookingAddition, Booking, Tier, LashSet, Addition):
             db.query(model).delete()
         db.commit()
 

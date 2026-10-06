@@ -1,6 +1,7 @@
 from collections.abc import Generator
+from datetime import datetime, timezone
 
-from sqlalchemy import create_engine, event
+from sqlalchemy import DateTime, TypeDecorator, create_engine, event
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
@@ -33,6 +34,37 @@ if settings.is_sqlite:
 
 
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+
+
+class UtcDateTime(TypeDecorator):
+    """
+    A timestamp that is always UTC and always timezone-aware in Python.
+
+    SQLite has no timezone-aware type, so it hands back naive values while
+    Postgres hands back aware ones. Comparing a naive value against an aware
+    one raises TypeError, which would make the same code work in production and
+    fail in development. This normalises both ends: values are converted to UTC
+    on the way in and given UTC tzinfo on the way out.
+    """
+
+    impl = DateTime
+    cache_ok = True
+
+    def process_bind_param(
+        self, value: datetime | None, dialect: object
+    ) -> datetime | None:
+        if value is None:
+            return None
+        if value.tzinfo is None:
+            raise ValueError("Refusing to store a naive datetime; pass an aware one.")
+        return value.astimezone(timezone.utc)
+
+    def process_result_value(
+        self, value: datetime | None, dialect: object
+    ) -> datetime | None:
+        if value is None:
+            return None
+        return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value
 
 
 class Base(DeclarativeBase):

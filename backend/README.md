@@ -75,6 +75,15 @@ API on a user's behalf.
 Migrations run unchanged on both: Alembic is configured with `render_as_batch`,
 so the table-rewrite SQLite needs happens automatically.
 
+## Endpoints
+
+| | |
+| --- | --- |
+| `GET /api/health` | Liveness, including a database round trip |
+| `GET /api/catalogue` | The menu, in display order |
+| `GET /api/availability?date=YYYY-MM-DD` | Every slot for a day, free or taken |
+| `POST /api/bookings` | Create a booking |
+
 ## Design rules
 
 **The server is the price authority.** Clients send tier and addition *IDs*;
@@ -86,4 +95,21 @@ values mirror `frontend/src/data/services.ts`. Seeding is idempotent and
 merges rather than replaces, so bookings keep referencing a live tier.
 
 **Money is stored in whole KES.** Prices in this business are whole shillings,
-so amounts are integers — no floats anywhere near a total.
+so amounts are integers — no floats anywhere near a total. The deposit rule is
+half the total to the nearest 50, floored at 100, computed with integer
+arithmetic so it matches the frontend exactly: Python rounds half-to-even and
+JavaScript rounds half-up, which would otherwise disagree by 50 on some totals.
+
+**Amounts are frozen onto a booking.** A booking records what it cost when it
+was made, so a later price change cannot rewrite what someone agreed to pay.
+
+**A slot holds one live booking.** The uniqueness index is partial, covering
+only pending and confirmed bookings, so cancelling or expiring one frees the
+time rather than blocking it forever. Unpaid M-Pesa holds lapse after
+`HOLD_MINUTES` and are released lazily whenever availability is read or a
+booking is made — there is no background worker yet.
+
+**Timestamps are UTC and timezone-aware**, via the `UtcDateTime` type. SQLite
+has no aware type and would otherwise hand back naive values that crash on
+comparison, while Postgres would not — the same code failing in only one
+environment.
