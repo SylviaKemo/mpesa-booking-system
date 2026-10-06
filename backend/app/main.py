@@ -6,7 +6,14 @@ from app.config import get_settings
 
 
 def create_app() -> FastAPI:
-    """App factory — lets tests build an app with overridden settings."""
+    """
+    Build the application.
+
+    Note this reads the process-wide cached settings; it does not isolate
+    configuration per call. Overriding settings means clearing that cache
+    (``get_settings.cache_clear()``) before importing ``app.database``, which
+    binds its engine at import time.
+    """
     settings = get_settings()
 
     app = FastAPI(
@@ -18,7 +25,8 @@ def create_app() -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
-        allow_credentials=True,
+        # False when origins are a wildcard — see Settings.allow_credentials.
+        allow_credentials=settings.allow_credentials,
         allow_methods=["*"],
         allow_headers=["*"],
     )

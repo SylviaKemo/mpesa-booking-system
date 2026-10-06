@@ -63,6 +63,13 @@ Switching to Postgres is one variable:
 DATABASE_URL=postgresql+psycopg://user:password@host:5432/shamim
 ```
 
+Percent-encode special characters in the password — `@` becomes `%40`, since a
+bare `@` would be read as the host delimiter.
+
+Set `ENVIRONMENT=production` when deployed: it refuses to start on a wildcard
+`CORS_ORIGINS`, which paired with credentialed CORS would let any site call the
+API on a user's behalf.
+
 Migrations run unchanged on both: Alembic is configured with `render_as_batch`,
 so the table-rewrite SQLite needs happens automatically.
 
