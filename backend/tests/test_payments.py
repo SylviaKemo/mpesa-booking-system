@@ -239,3 +239,117 @@ def test_a_booking_can_be_polled_by_reference(client: TestClient, db: Session) -
 
 def test_an_unknown_reference_is_not_found(client: TestClient) -> None:
     assert client.get("/api/bookings/SS-NOPE1").status_code == 404
+
+
+@pytest.mark.usefixtures("seeded")
+def test_a_payment_that_lands_after_the_slot_is_gone_is_flagged_not_dropped(
+    client: TestClient, db: Session
+) -> None:
+    """
+    The money moved but the slot did not survive. Confirming anyway violates
+    the slot index and the IntegrityError escapes as a 500, which Safaricom
+    retries forever; dropping it loses the fact that someone paid.
+    """
+    from datetime import timedelta
+
+    from app.models import PaymentMethod
+    from app.services.booking import expire_stale_holds
+
+    created = client.post("/api/bookings", json=_payload()).json()
+    payment = db.query(Payment).one()
+
+    # The hold lapses and the slot is released.
+    booking = db.query(Booking).one()
+    booking.hold_expires_at = booking.hold_expires_at - timedelta(hours=1)
+    db.commit()
+    expire_stale_holds(db)
+    db.commit()
+
+    # Someone else takes the freed slot.
+    taken = client.post(
+        "/api/bookings", json=_payload(name="Next Client", payment_method="studio")
+    )
+    assert taken.status_code == 201
+
+    # The original payment confirms late.
+    response = _post_callback(
+        client, _callback(payment.checkout_request_id, amount=created["deposit_kes"])
+    )
+
+    assert response.status_code == 200, "a 500 here would retry forever"
+
+    db.expire_all()
+    settled = db.query(Payment).one()
+    assert settled.status is PaymentStatus.ORPHANED
+    # The receipt is what a refund will be traced by.
+    assert settled.mpesa_receipt == "SGH3RTY89K"
+    assert "refund" in (settled.result_desc or "")
+
+    original = db.query(Booking).filter_by(reference=created["reference"]).one()
+    assert original.status is BookingStatus.EXPIRED
+    # Exactly one live booking on that slot: the one that actually holds it.
+    assert db.query(Booking).filter_by(status=BookingStatus.CONFIRMED).count() == 1
+
+
+@pytest.mark.usefixtures("seeded")
+def test_the_lookup_reveals_no_personal_data(client: TestClient) -> None:
+    """
+    A reference is five characters and the endpoint is unauthenticated, so it is
+    enumerable. A guess must not buy a name, a mobile number, or a note that may
+    be medical.
+    """
+    created = client.post(
+        "/api/bookings", json=_payload(name="Grace Mwangi", notes="sensitive eyes")
+    ).json()
+
+    body = client.get(f"/api/bookings/{created['reference']}").json()
+
+    for leaked in ("customer_name", "customer_phone", "notes"):
+        assert leaked not in body, f"{leaked} is readable by anyone with a reference"
+
+    # Still answers what the polling exists for.
+    assert body["status"] == BookingStatus.PENDING_PAYMENT.value
+    assert body["deposit_kes"] == created["deposit_kes"]
+    assert body["payments"][0]["status"] == PaymentStatus.PENDING.value
+
+
+@pytest.mark.usefixtures("seeded")
+def test_a_provider_outage_still_tells_the_client_their_reference(
+    client: TestClient, mpesa: FakeMpesaProvider
+) -> None:
+    """
+    Without it they hold a slot they cannot poll for, and retrying collides with
+    their own booking.
+    """
+    mpesa.fail_with = MpesaError("Daraja unavailable")
+
+    response = client.post("/api/bookings", json=_payload())
+
+    assert response.status_code == 502
+    detail = response.json()["detail"]
+    assert detail["reference"].startswith("SS-")
+    # And that reference resolves, so they can poll or be helped over the phone.
+    assert client.get(f"/api/bookings/{detail['reference']}").status_code == 200
+
+
+@pytest.mark.usefixtures("seeded")
+def test_an_unparseable_amount_fails_the_payment_rather_than_stranding_it(
+    client: TestClient, db: Session
+) -> None:
+    """
+    Letting ValueError escape put this through a handler meant for malformed
+    envelopes, which answered 200 and left the payment pending forever — no
+    retry would ever come.
+    """
+    client.post("/api/bookings", json=_payload())
+    payment = db.query(Payment).one()
+
+    body = _callback(payment.checkout_request_id, amount=0)
+    body["Body"]["stkCallback"]["CallbackMetadata"]["Item"][0]["Value"] = "not-a-number"
+
+    response = _post_callback(client, body)
+
+    assert response.status_code == 200
+    db.expire_all()
+    assert db.query(Payment).one().status is PaymentStatus.FAILED
+    assert db.query(Booking).one().status is BookingStatus.PENDING_PAYMENT

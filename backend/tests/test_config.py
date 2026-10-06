@@ -114,3 +114,13 @@ def test_production_requires_a_callback_secret(
 def test_is_sqlite_detects_driver() -> None:
     assert Settings(database_url="sqlite:///./x.db").is_sqlite is True
     assert Settings(database_url="postgresql+psycopg://u@h/db").is_sqlite is False
+
+
+def test_settings_do_not_read_a_developers_env_file_under_test() -> None:
+    """
+    The suite used to load backend/.env, so a local MPESA_PROVIDER=daraja made
+    tests fire live Safaricom requests, and a populated file masked the cases
+    asserting a value is absent. conftest disables it; this notices if that
+    stops working.
+    """
+    assert Settings.model_config.get("env_file") is None
