@@ -43,14 +43,8 @@ export const HOME_HERO = {
   alt: "Lash artistry close-up",
 } as const;
 
-/**
- * TODO: swap in the supplied portrait once it is available. The handoff
- * references `uploads/WhatsApp Image 2026-09-18 at 15.13.57.jpeg`, which was not
- * included in the bundle; this stands in so the About page renders.
- */
 export const ABOUT_PORTRAIT = {
-  image:
-    "https://swiftill.co.ke/uploads/businesses/katiani-styles/services/mid-vol-classic/f3875edac0014d6fa2ecc06eb8426ef2.jpeg",
+  /** 960x1280 — exactly the 3:4 the About portrait slot expects, so nothing crops. */
+  image: "/images/shamim-portrait.jpg",
   alt: "Shamim, founder of Shamim Styles",
-  isPlaceholder: true,
 } as const;
