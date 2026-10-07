@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { Addition } from "@/data/services";
+import type { Addition } from "@/lib/api";
 import type { Summary } from "@/lib/pricing";
 import type { BookingStep } from "@/hooks/useBooking";
 import styles from "./BookingSheet.module.css";

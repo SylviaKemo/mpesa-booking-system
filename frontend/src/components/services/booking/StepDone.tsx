@@ -13,10 +13,19 @@ export function StepDone({ booking, amount }: StepDoneProps) {
   const firstName = booking.name.trim().split(" ")[0];
   const phone = booking.phone.trim() || "your phone";
 
+  const slotLabel = booking.slots.find((s) => s.key === booking.slot)?.label;
+
   const whenLine =
-    booking.dayKey && booking.slot
-      ? `${prettyDate(booking.dayKey)} at ${booking.slot}`
+    booking.dayKey && slotLabel
+      ? `${prettyDate(booking.dayKey)} at ${slotLabel}`
       : "—";
+
+  // The server's view, once the callback has landed. Until then the prompt is
+  // still out and the sheet is polling.
+  const confirmed = booking.booking?.status === "confirmed";
+  const timedOut = booking.pollTimedOut && !confirmed;
+  const awaitingPayment = booking.pay === "mpesa" && !confirmed && !timedOut;
+  const receipt = booking.booking?.payments.at(-1)?.mpesa_receipt ?? null;
 
   const dueLine =
     booking.pay === "mpesa"
@@ -30,13 +39,25 @@ export function StepDone({ booking, amount }: StepDoneProps) {
       </div>
 
       <h3 className={styles.headline}>
-        {firstName ? `${firstName}, you're booked` : "You're booked"}
+        {timedOut
+          ? "Still waiting on payment"
+          : awaitingPayment
+            ? "Check your phone"
+            : firstName
+            ? `${firstName}, you're booked`
+            : "You're booked"}
       </h3>
 
       <p className={styles.body}>
-        {booking.pay === "mpesa"
-          ? `An M-Pesa request for the deposit has been sent to ${phone}. Confirm it on your handset and the slot is locked in.`
-          : `Your slot is held. Come a few minutes early and settle at the studio — a reminder lands on ${phone} the day before.`}
+        {timedOut
+          ? `We have not seen the deposit yet. If you have paid, quote ${booking.reference ?? "your reference"} and we will sort it out; otherwise the slot frees up shortly and you can book again.`
+          : booking.error
+            ? booking.error
+            : awaitingPayment
+            ? `An M-Pesa request for the deposit has been sent to ${phone}. Confirm it on your handset and the slot is locked in.`
+            : booking.pay === "mpesa"
+              ? `Deposit received${receipt ? ` — M-Pesa receipt ${receipt}` : ""}. Your slot is confirmed.`
+              : `Your slot is held. Come a few minutes early and settle at the studio — a reminder lands on ${phone} the day before.`}
       </p>
 
       <dl className={styles.receipt}>

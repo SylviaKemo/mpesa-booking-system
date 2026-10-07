@@ -1,4 +1,4 @@
-import { ADDITIONS, SETS, type Addition, type LashSet, type Tier } from "@/data/services";
+import type { Addition, Catalogue, LashSet, Tier } from "@/lib/api";
 
 export type PickedTier = {
   set: LashSet;
@@ -14,25 +14,34 @@ export type Selection = {
   mins: number;
 };
 
-export function findTier(tierId: string | null): PickedTier | null {
+export function findTier(
+  catalogue: Catalogue,
+  tierId: string | null,
+): PickedTier | null {
   if (!tierId) return null;
-  for (const set of SETS) {
+  for (const set of catalogue.sets) {
     const tier = set.tiers.find((t) => t.id === tierId);
     if (tier) return { set, tier };
   }
   return null;
 }
 
-export function getSelection(tierId: string | null, addIds: string[]): Selection {
-  const picked = findTier(tierId);
-  const chosenAdds = ADDITIONS.filter((a) => addIds.includes(a.id));
+export function getSelection(
+  catalogue: Catalogue,
+  tierId: string | null,
+  addIds: string[],
+): Selection {
+  const picked = findTier(catalogue, tierId);
+  const chosenAdds = catalogue.additions.filter((a) => addIds.includes(a.id));
 
   return {
     picked,
     chosenAdds,
     amount:
-      (picked?.tier.amount ?? 0) + chosenAdds.reduce((n, a) => n + a.amount, 0),
-    mins: (picked?.tier.mins ?? 0) + chosenAdds.reduce((n, a) => n + a.mins, 0),
+      (picked?.tier.amount_kes ?? 0) +
+      chosenAdds.reduce((n, a) => n + a.amount_kes, 0),
+    mins:
+      (picked?.tier.minutes ?? 0) + chosenAdds.reduce((n, a) => n + a.minutes, 0),
   };
 }
 
@@ -64,15 +73,18 @@ export function getSummary({ picked, chosenAdds, mins }: Selection): Summary {
 
 /** Tier meta line, e.g. "25 min" or "20 min · for beginners". */
 export function tierMeta(tier: Tier): string {
-  return tier.note ? `${tier.mins} min · ${tier.note}` : `${tier.mins} min`;
+  return tier.note ? `${tier.minutes} min · ${tier.note}` : `${tier.minutes} min`;
 }
 
 /**
- * Half the total, rounded to the nearest 50 KES, never below 100.
+ * Half the total to the nearest 50 KES, floored at 100.
  *
- * Mirrors the prototype's arithmetic. Note the written handoff says "rounded up
- * to the nearest 50", but the prototype rounds to nearest; the prototype wins.
+ * Shown before submitting so the client knows what they are agreeing to. The
+ * server recomputes it from its own catalogue and that figure is the one
+ * charged; this must agree with it, so the arithmetic is integer-only and
+ * matches the backend's deposit_for exactly.
  */
 export function getDeposit(amount: number): number {
-  return Math.max(100, Math.round((amount * 0.5) / 50) * 50);
+  const halfSteps = Math.floor((2 * amount + 100) / 200);
+  return Math.max(100, halfSteps * 50);
 }

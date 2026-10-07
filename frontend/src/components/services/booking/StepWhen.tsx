@@ -1,6 +1,5 @@
 "use client";
 
-import { SLOTS } from "@/data/services";
 import type { Booking } from "@/hooks/useBooking";
 import { money, prettyDate } from "@/lib/format";
 import { Calendar } from "./Calendar";
@@ -12,9 +11,11 @@ type StepWhenProps = {
 };
 
 export function StepWhen({ booking, amount }: StepWhenProps) {
+  const slotLabel = booking.slots.find((s) => s.key === booking.slot)?.label;
+
   const whenLine = booking.dayKey
-    ? booking.slot
-      ? `${prettyDate(booking.dayKey)} at ${booking.slot}`
+    ? slotLabel
+      ? `${prettyDate(booking.dayKey)} at ${slotLabel}`
       : "Now pick a time"
     : "Pick a date to see available times";
 
@@ -33,25 +34,41 @@ export function StepWhen({ booking, amount }: StepWhenProps) {
           <p className={styles.sectionLabel}>
             Time on {prettyDate(booking.dayKey)}
           </p>
-          <div className={styles.slots} role="radiogroup" aria-label="Start time">
-            {SLOTS.map((slot) => (
-              <button
-                key={slot}
-                type="button"
-                role="radio"
-                aria-checked={booking.slot === slot}
-                onClick={() => booking.pickSlot(slot)}
-                className={[
-                  styles.slot,
-                  booking.slot === slot ? styles.slotSelected : "",
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
-              >
-                {slot}
-              </button>
-            ))}
-          </div>
+          {booking.slotsError ? (
+            <p className={styles.error} role="status">
+              {booking.slotsError}
+            </p>
+          ) : booking.loadingSlots ? (
+            <p className={styles.note}>Checking what&apos;s free…</p>
+          ) : booking.slots.length === 0 ? (
+            <p className={styles.note}>
+              No times available on this day. Try another date.
+            </p>
+          ) : (
+            <div className={styles.slots} role="radiogroup" aria-label="Start time">
+              {booking.slots.map((slot) => (
+                <button
+                  key={slot.key}
+                  type="button"
+                  role="radio"
+                  aria-checked={booking.slot === slot.key}
+                  // A time someone else holds is shown disabled rather than
+                  // hidden, so the day keeps its shape.
+                  disabled={!slot.available}
+                  onClick={() => booking.pickSlot(slot.key)}
+                  className={[
+                    styles.slot,
+                    booking.slot === slot.key ? styles.slotSelected : "",
+                    !slot.available ? styles.slotTaken : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                >
+                  {slot.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       ) : null}
 

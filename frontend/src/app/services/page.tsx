@@ -3,6 +3,7 @@ import { SiteNav } from "@/components/layout/SiteNav";
 import { ProgressSteps } from "@/components/services/ProgressSteps";
 import { ServicesMenu } from "@/components/services/ServicesMenu";
 import { Container } from "@/components/ui/Container";
+import { ApiError, getCatalogue, type Catalogue } from "@/lib/api";
 import styles from "./page.module.css";
 
 export const metadata: Metadata = {
@@ -11,7 +12,25 @@ export const metadata: Metadata = {
     "Wispy, cat eye and classic lash sets with optional removal, charms, colour and glitter. Pick a volume and book.",
 };
 
-export default function ServicesPage() {
+// The menu lives in the database now, so this cannot be baked at build time.
+export const dynamic = "force-dynamic";
+
+export default async function ServicesPage() {
+  let catalogue: Catalogue | null = null;
+  let loadError: string | null = null;
+
+  try {
+    catalogue = await getCatalogue();
+  } catch (error) {
+    // The page still renders its heading and the reason, rather than a crash:
+    // somebody looking at a blank screen cannot tell a broken deploy from a
+    // slow one.
+    loadError =
+      error instanceof ApiError
+        ? error.message
+        : "The lash menu could not be loaded.";
+  }
+
   return (
     <div className={styles.page}>
       <SiteNav variant="bordered" />
@@ -26,7 +45,15 @@ export default function ServicesPage() {
         <ProgressSteps current={1} />
       </Container>
 
-      <ServicesMenu />
+      {catalogue ? (
+        <ServicesMenu catalogue={catalogue} />
+      ) : (
+        <Container as="section" className={styles.header}>
+          <p className={styles.intro} role="status">
+            {loadError} Please try again in a moment.
+          </p>
+        </Container>
+      )}
     </div>
   );
 }

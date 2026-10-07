@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Container } from "@/components/ui/Container";
-import { ADDITIONS, ADDITIONS_CARD, SETS } from "@/data/services";
+import type { Catalogue } from "@/lib/api";
 import { useBooking } from "@/hooks/useBooking";
 import { getSelection, getSummary, tierMeta } from "@/lib/pricing";
 import { BookingFlow } from "./booking/BookingFlow";
@@ -11,14 +11,17 @@ import { ServiceCard } from "./ServiceCard";
 import { SummaryBar } from "./SummaryBar";
 import styles from "./ServicesMenu.module.css";
 
-export function ServicesMenu() {
+export function ServicesMenu({ catalogue }: { catalogue: Catalogue }) {
   const [tierId, setTierId] = useState<string | null>(null);
   const [addIds, setAddIds] = useState<string[]>([]);
 
-  const selection = useMemo(() => getSelection(tierId, addIds), [tierId, addIds]);
+  const selection = useMemo(
+    () => getSelection(catalogue, tierId, addIds),
+    [catalogue, tierId, addIds],
+  );
   const summary = useMemo(() => getSummary(selection), [selection]);
 
-  const booking = useBooking(selection.amount);
+  const booking = useBooking(selection.amount, { tierId, addIds });
 
   const toggleAddition = (id: string) =>
     setAddIds((current) =>
@@ -28,13 +31,13 @@ export function ServicesMenu() {
   return (
     <>
       <Container className={styles.grid}>
-        {SETS.map((set) => (
+        {catalogue.sets.map((set) => (
           <ServiceCard
             key={set.id}
             name={set.name}
             blurb={set.blurb}
-            img={set.img}
-            alt={set.alt}
+            img={set.image_url}
+            alt={set.image_alt}
             optionsRole="radiogroup"
             optionsLabel={`${set.name} volumes`}
           >
@@ -44,7 +47,7 @@ export function ServicesMenu() {
                 kind="radio"
                 label={tier.label}
                 meta={tierMeta(tier)}
-                amount={tier.amount}
+                amount={tier.amount_kes}
                 selected={tierId === tier.id}
                 onToggle={() => setTierId(tier.id)}
               />
@@ -53,19 +56,19 @@ export function ServicesMenu() {
         ))}
 
         <ServiceCard
-          name={ADDITIONS_CARD.name}
-          blurb={ADDITIONS_CARD.blurb}
-          img={ADDITIONS_CARD.img}
-          alt={ADDITIONS_CARD.alt}
+          name={catalogue.additions_card.name}
+          blurb={catalogue.additions_card.blurb}
+          img={catalogue.additions_card.image_url}
+          alt={catalogue.additions_card.image_alt}
           optionsRole="group"
           optionsLabel="Additions"
         >
-          {ADDITIONS.map((addition) => (
+          {catalogue.additions.map((addition) => (
             <OptionRow
               key={addition.id}
               kind="checkbox"
               label={addition.label}
-              amount={addition.amount}
+              amount={addition.amount_kes}
               selected={addIds.includes(addition.id)}
               onToggle={() => toggleAddition(addition.id)}
             />
