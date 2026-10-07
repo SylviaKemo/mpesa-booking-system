@@ -1,9 +1,10 @@
 """
 Seed the catalogue.
 
-The values mirror frontend/src/data/services.ts, which was the source of truth
-until now. Once this runs, the database is: the server prices every booking from
-these rows and never trusts an amount sent by a client.
+This file is the source of truth for the catalogue's values; the frontend has no
+copy and reads them from GET /api/catalogue. Once this runs, the database holds
+them: the server prices every booking from these rows and never trusts an
+amount sent by a client.
 
 Idempotent — safe to run on every deploy.
 
