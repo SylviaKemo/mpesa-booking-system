@@ -95,6 +95,11 @@ class Booking(Base):
     created_at: Mapped[datetime] = mapped_column(
         UtcDateTime, nullable=False, server_default=func.now()
     )
+    #: When the booking reached Shamim's calendar. Null on a confirmed booking
+    #: means the calendar has not got it yet, and the next sync will retry.
+    calendar_synced_at: Mapped[datetime | None] = mapped_column(
+        UtcDateTime, nullable=True
+    )
 
     tier: Mapped[Tier] = relationship()
     additions: Mapped[list["BookingAddition"]] = relationship(

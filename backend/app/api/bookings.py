@@ -1,11 +1,11 @@
 from datetime import date
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Booking, PaymentMethod
+from app.models import Booking, BookingStatus, PaymentMethod
 from app.schemas.booking import (
     AvailabilityOut,
     BookingCreate,
@@ -13,6 +13,7 @@ from app.schemas.booking import (
     BookingStatusOut,
 )
 from app.services.booking import BookingError, SlotUnavailable, availability, create_booking
+from app.services.calendar import sync_in_background
 from app.services.mpesa import get_provider
 from app.services.payments import PaymentError, request_deposit
 from app.services.phone import InvalidPhoneNumber
@@ -33,7 +34,11 @@ def get_availability(
 @router.post(
     "/bookings", response_model=BookingOut, status_code=status.HTTP_201_CREATED
 )
-def post_booking(payload: BookingCreate, db: Session = Depends(get_db)) -> BookingOut:
+def post_booking(
+    payload: BookingCreate,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+) -> BookingOut:
     """
     Create a booking.
 
@@ -75,6 +80,11 @@ def post_booking(payload: BookingCreate, db: Session = Depends(get_db)) -> Booki
                 },
             ) from exc
         db.refresh(booking)
+
+    if booking.status is BookingStatus.CONFIRMED:
+        # Paying at the studio confirms outright, with no callback to wait
+        # for — this is the only moment the booking is known to be firm.
+        background_tasks.add_task(sync_in_background)
 
     return BookingOut.model_validate(booking)
 

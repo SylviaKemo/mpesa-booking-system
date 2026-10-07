@@ -76,6 +76,9 @@ class CallbackOutcome:
     handled: bool
     already_settled: bool
     detail: str
+    #: This callback is what confirmed the booking, so it now belongs in the
+    #: calendar. False on a retry of a confirmation already settled.
+    confirmed: bool = False
 
 
 def _as_int(value: object) -> int | None:
@@ -197,4 +200,4 @@ def handle_callback(db: Session, payload: dict[str, Any]) -> CallbackOutcome:
     booking.hold_expires_at = None
 
     db.commit()
-    return CallbackOutcome(True, False, "Payment confirmed")
+    return CallbackOutcome(True, False, "Payment confirmed", confirmed=True)

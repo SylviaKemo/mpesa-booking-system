@@ -14,6 +14,7 @@ os.environ["DATABASE_URL"] = f"sqlite:///{_db_path}"
 os.environ["ENVIRONMENT"] = "development"
 os.environ["MPESA_CALLBACK_SECRET"] = "test-callback-secret"
 os.environ["MPESA_PROVIDER"] = "fake"
+os.environ["CALENDAR_PROVIDER"] = "fake"
 
 # Stop Settings reading the developer's .env. Without this the suite inherits
 # whatever is configured locally: a real MPESA_PROVIDER=daraja makes tests fire
@@ -39,6 +40,7 @@ from app.models import (  # noqa: E402
     Payment,
     Tier,
 )
+from app.services.calendar import fake_calendar  # noqa: E402
 from app.services.mpesa import fake_provider  # noqa: E402
 from app.seed import seed_catalogue  # noqa: E402
 
@@ -86,6 +88,20 @@ def _reset_mpesa() -> Generator[None, None, None]:
 def mpesa() -> object:
     """The fake provider, for asserting what was sent and forcing failures."""
     return fake_provider
+
+
+@pytest.fixture(autouse=True)
+def _reset_calendar() -> Generator[None, None, None]:
+    """The fake calendar is a module singleton too."""
+    fake_calendar.reset()
+    yield
+    fake_calendar.reset()
+
+
+@pytest.fixture
+def calendar() -> object:
+    """The fake calendar, for asserting what was added and forcing failures."""
+    return fake_calendar
 
 
 @pytest.fixture
