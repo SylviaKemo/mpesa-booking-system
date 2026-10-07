@@ -1,3 +1,4 @@
+import json
 from functools import lru_cache
 from typing import Annotated, Literal
 from zoneinfo import ZoneInfo, available_timezones
@@ -69,6 +70,20 @@ class Settings(BaseSettings):
         base = self.mpesa_callback_base_url.rstrip("/")
         return f"{base}/api/mpesa/callback/{self.mpesa_callback_secret}"
 
+    # Confirmed bookings land in Shamim's Google Calendar — her only view of
+    # them, since she declined an admin screen. "fake" records events in memory
+    # so the flow runs without a Google project. Production refuses it.
+    calendar_provider: Literal["fake", "google"] = "fake"
+
+    # The calendar the events go into: her Gmail address for her main calendar,
+    # or a calendar's ID from its settings page. It must be shared with the
+    # service account, with permission to make changes to events.
+    google_calendar_id: str = ""
+
+    # The service account's JSON key, the whole file as one line. Never
+    # defaulted — it can write to her calendar.
+    google_service_account_json: str = ""
+
     # NoDecode stops pydantic-settings JSON-decoding the raw environment value.
     # Without it a bare "http://localhost:3000" is handed to json.loads() and
     # raises before the validator below runs, so every CORS_ORIGINS value fails.
@@ -103,6 +118,46 @@ class Settings(BaseSettings):
                 raise ValueError(
                     f"Required in production but not set: {', '.join(missing)}."
                 )
+        return self
+
+    @model_validator(mode="after")
+    def _calendar_configured(self) -> "Settings":
+        """
+        Bookings that never reach the calendar are bookings Shamim never sees,
+        so production refuses to start without it. A malformed key is caught
+        here too, rather than on the first paid booking.
+        """
+        if self.environment == "production" and self.calendar_provider != "google":
+            raise ValueError(
+                "CALENDAR_PROVIDER must be 'google' when ENVIRONMENT=production."
+            )
+        if self.calendar_provider != "google":
+            return self
+
+        missing = [
+            name
+            for name, value in (
+                ("GOOGLE_CALENDAR_ID", self.google_calendar_id),
+                ("GOOGLE_SERVICE_ACCOUNT_JSON", self.google_service_account_json),
+            )
+            if not value
+        ]
+        if missing:
+            raise ValueError(
+                f"Required when CALENDAR_PROVIDER=google: {', '.join(missing)}."
+            )
+
+        try:
+            key = json.loads(self.google_service_account_json)
+        except ValueError as exc:
+            raise ValueError("GOOGLE_SERVICE_ACCOUNT_JSON is not valid JSON.") from exc
+        if not isinstance(key, dict) or not all(
+            key.get(field) for field in ("client_email", "private_key")
+        ):
+            raise ValueError(
+                "GOOGLE_SERVICE_ACCOUNT_JSON must be a service account key, "
+                "with client_email and private_key."
+            )
         return self
 
     @model_validator(mode="after")

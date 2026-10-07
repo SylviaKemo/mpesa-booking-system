@@ -11,3 +11,7 @@ psycopg[binary]==3.2.3
 
 # HTTP client for Daraja.
 httpx2==2.13.1
+
+# Signs the Google service account's token request (RS256, so the crypto extra).
+PyJWT[crypto]==2.15.1
+cryptography==50.0.2

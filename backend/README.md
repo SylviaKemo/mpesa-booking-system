@@ -37,6 +37,7 @@ The API listens on `http://localhost:8000`. Interactive docs are at `/docs`.
 | `pytest` | Run the suite |
 | `alembic upgrade head` | Apply migrations |
 | `python -m app.seed` | Seed the catalogue (idempotent) |
+| `python -m app.sync_calendar` | Add any confirmed bookings the calendar is missing (idempotent) |
 | `alembic revision --autogenerate -m "..."` | Create a migration from model changes |
 
 ## Layout
@@ -46,6 +47,7 @@ backend/
 ├── app/
 │   ├── api/          # Routers, one module per resource
 │   ├── models/       # SQLAlchemy models
+│   ├── services/     # Booking, pricing, payments; M-Pesa and calendar providers
 │   ├── config.py     # Settings from the environment
 │   ├── database.py   # Engine, session, declarative Base
 │   └── main.py       # App factory, CORS, router mounting
@@ -123,6 +125,52 @@ Three things the callback handler does not take on trust:
 A failed or cancelled payment leaves the hold running rather than tearing it
 down, so the client can answer a fresh prompt without losing the slot; if they
 do nothing it lapses on its own.
+
+## Google Calendar
+
+Shamim has no admin screen; her view of bookings is her Google Calendar. Each
+booking is added as an event the moment it is confirmed — straight away when
+paying at the studio, on the callback when the deposit is by M-Pesa. A held
+slot that is never paid for never appears.
+
+The event carries the client's name and phone, the set and additions, the total,
+the deposit and its M-Pesa receipt, the balance due, and any notes.
+
+`CALENDAR_PROVIDER=fake` records events in memory rather than sending them.
+Production refuses to start on the fake, and refuses a missing or malformed key.
+
+Two rules shape how it runs:
+
+- **A calendar outage never undoes a booking.** The event is added after the
+  response is sent, so the client and Safaricom never wait on Google, and a
+  failure cannot fail a payment that already settled.
+- **A miss is retried.** Each run adds *every* confirmed upcoming booking the
+  calendar is missing, so the next confirmation catches up whatever an outage
+  left behind. `python -m app.sync_calendar` does the same on demand, or from
+  cron. Event ids derive from the booking reference, so nothing lands twice.
+
+### Setting it up
+
+1. In the [Google Cloud console](https://console.cloud.google.com), create a
+   project and enable the **Google Calendar API**.
+2. Under **IAM & Admin → Service Accounts**, create a service account, then
+   **Keys → Add key → JSON**. Keep the downloaded file out of the repo.
+3. In Google Calendar on a computer, create a calendar for bookings — say
+   "Shamim Styles bookings". A separate calendar gets its own colour and
+   notification settings, and the service account can touch nothing else.
+4. In that calendar's settings, **Share with specific people** → add the key's
+   `client_email` with **Make changes to events**.
+5. Copy the **Calendar ID** from **Integrate calendar** into
+   `GOOGLE_CALENDAR_ID`.
+6. Put the key on one line in `GOOGLE_SERVICE_ACCOUNT_JSON`:
+   `python -c "import json,sys; print(json.dumps(json.load(open(sys.argv[1]))))" key.json`
+7. Set `CALENDAR_PROVIDER=google`, make a studio booking, and check it appears.
+
+Set **Event notifications** on the bookings calendar too — for example a day
+before and an hour before. Events added by the service account use that
+calendar's defaults, and Google does not reliably alert her when one is added,
+so these reminders are how she hears about a booking without opening the
+calendar.
 
 ## Design rules
 

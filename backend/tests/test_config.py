@@ -1,3 +1,5 @@
+import json
+
 import pytest
 from pydantic import ValidationError
 
@@ -17,8 +19,13 @@ def _settings_from_env(monkeypatch: pytest.MonkeyPatch, **env: str) -> Settings:
     return Settings()
 
 
-def _production_mpesa() -> dict[str, str]:
-    """A production config that satisfies every M-Pesa guard."""
+_SERVICE_ACCOUNT = json.dumps(
+    {"client_email": "booking@shamim.iam.gserviceaccount.com", "private_key": "pem"}
+)
+
+
+def _production() -> dict[str, str]:
+    """A production config that satisfies every guard."""
     return {
         "ENVIRONMENT": "production",
         "MPESA_PROVIDER": "daraja",
@@ -26,6 +33,9 @@ def _production_mpesa() -> dict[str, str]:
         "MPESA_CONSUMER_KEY": "key",
         "MPESA_CONSUMER_SECRET": "secret",
         "MPESA_CALLBACK_BASE_URL": "https://shamimstyles.co.ke",
+        "CALENDAR_PROVIDER": "google",
+        "GOOGLE_CALENDAR_ID": "shamim@gmail.com",
+        "GOOGLE_SERVICE_ACCOUNT_JSON": _SERVICE_ACCOUNT,
     }
 
 
@@ -80,7 +90,7 @@ def test_wildcard_origin_is_refused_in_production(
         _settings_from_env(
             monkeypatch,
             CORS_ORIGINS="*",
-            **_production_mpesa(),
+            **_production(),
         )
 
 
@@ -92,7 +102,7 @@ def test_production_refuses_the_fake_payment_provider(
         _settings_from_env(
             monkeypatch,
             CORS_ORIGINS="https://shamimstyles.co.ke",
-            **{**_production_mpesa(), "MPESA_PROVIDER": "fake"},
+            **{**_production(), "MPESA_PROVIDER": "fake"},
         )
 
 
@@ -102,12 +112,69 @@ def test_production_requires_a_callback_secret(
     """Without it the callback URL is guessable and anyone could forge a confirmation."""
     # conftest sets a secret for the whole session; this case needs it absent.
     monkeypatch.delenv("MPESA_CALLBACK_SECRET", raising=False)
-    config = _production_mpesa()
+    config = _production()
     config.pop("MPESA_CALLBACK_SECRET")
 
     with pytest.raises(ValidationError, match="MPESA_CALLBACK_SECRET"):
         _settings_from_env(
             monkeypatch, CORS_ORIGINS="https://shamimstyles.co.ke", **config
+        )
+
+
+def test_a_full_production_config_loads(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The guards below each fail one value; this proves the baseline passes."""
+    settings = _settings_from_env(
+        monkeypatch, CORS_ORIGINS="https://shamimstyles.co.ke", **_production()
+    )
+
+    assert settings.calendar_provider == "google"
+
+
+def test_production_refuses_the_fake_calendar(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The calendar is Shamim's only view of bookings; without it she would miss clients."""
+    with pytest.raises(ValidationError, match="CALENDAR_PROVIDER"):
+        _settings_from_env(
+            monkeypatch,
+            CORS_ORIGINS="https://shamimstyles.co.ke",
+            **{**_production(), "CALENDAR_PROVIDER": "fake"},
+        )
+
+
+@pytest.mark.parametrize("missing", ["GOOGLE_CALENDAR_ID", "GOOGLE_SERVICE_ACCOUNT_JSON"])
+def test_the_google_calendar_needs_its_id_and_key(
+    monkeypatch: pytest.MonkeyPatch, missing: str
+) -> None:
+    config = {
+        "CALENDAR_PROVIDER": "google",
+        "GOOGLE_CALENDAR_ID": "shamim@gmail.com",
+        "GOOGLE_SERVICE_ACCOUNT_JSON": _SERVICE_ACCOUNT,
+    }
+    config.pop(missing)
+
+    with pytest.raises(ValidationError, match=missing):
+        _settings_from_env(monkeypatch, **config)
+
+
+@pytest.mark.parametrize(
+    "key",
+    [
+        "not json",
+        json.dumps({"client_email": "booking@shamim.iam.gserviceaccount.com"}),
+        json.dumps(["a", "list"]),
+    ],
+)
+def test_a_malformed_service_account_key_is_refused_at_startup(
+    monkeypatch: pytest.MonkeyPatch, key: str
+) -> None:
+    """Caught here rather than on the first paid booking, which would never reach the calendar."""
+    with pytest.raises(ValidationError, match="GOOGLE_SERVICE_ACCOUNT_JSON"):
+        _settings_from_env(
+            monkeypatch,
+            CALENDAR_PROVIDER="google",
+            GOOGLE_CALENDAR_ID="shamim@gmail.com",
+            GOOGLE_SERVICE_ACCOUNT_JSON=key,
         )
 
 
